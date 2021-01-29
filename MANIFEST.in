@@ -1,0 +1,4 @@
+include flaskr/schema.sql
+graft libs
+
+global-exclude *.pyc
