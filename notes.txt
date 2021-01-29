@@ -1,3 +1,26 @@
-To compile the package:
+During install, if some packages are missing, note which ones !
 
-python setup.py bdist_wheel
+1-open windows terminal and change directory to TOF-SIMS-package folder
+  chdir "Documents\TOF-SIMS package"
+
+2-create a virtual environment:
+  pip install virtualenv
+  virtualenv venv
+
+3-activate environment (called venv).
+Since you already are inside TOF-SIMS package folder simply type
+  venv\Scripts\activate
+
+4-Then to compile the package:
+- in developer mode:
+  python setup.py bdist_wheel
+
+-or alternatively to push to PyPI (don't do it):
+  python setup.py bdist_wheel
+
+5-install TOF-SIMS package on your machine (to make it available to Jupyter notebook)
+  pip install TOF-SIMS
+
+
+6-to deactivate the venv (don't need it but just in case..)
+  deactivate

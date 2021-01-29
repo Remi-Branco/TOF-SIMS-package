@@ -2,6 +2,11 @@ This is a simple example package. You can use
 [Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
 to write your content.
 
+Need to be completed before first publication
+(corresponding file is README.md)
+
+
+
 Python package to read TOF-SIMS data files.
 Highlights
 
@@ -12,4 +17,3 @@ Highlights
     Read in the complete header of the file. Get access to every setting of the machine recorded at the time of the experiment. This includes:
         date
         energy
-        ...(Dan to complete)
