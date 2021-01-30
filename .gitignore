@@ -1,10 +1,8 @@
 venv
 .git
 build
-Pipfile
-Pipfile.lock
-*.egg-info
-TOF_SIMS/__pycache__
-tests
-Pipfile
-Pipfile.lock
+/*.egg-info
+/TOF_SIMS/__pycache__
+/tests
+/Pipfile
+/Pipfile.lock
