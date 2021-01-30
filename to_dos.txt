@@ -1,0 +1,3 @@
+add scales to graphs
+Fix typos
+Fix readme.md file

@@ -19,7 +19,9 @@ class TOF_SIMS :
     """
     #class attribute to count the number of datasets opened
     datasets_opened = 0
+
     dim = {"x":1,"y":2,"z":0,"n":3} #to find correspondence between letters and axes
+
 
     def __init__(self,filename):
         """
@@ -40,6 +42,9 @@ class TOF_SIMS :
         peak_table: 1D numpy array
           contains reference for peak integration
         """
+
+
+        self.colormap = "viridis"
         #open hdf5 file
         print("Cache size = ",cache_size)
         f = h5py.File(filename,'r')
@@ -51,10 +56,13 @@ class TOF_SIMS :
         self._TPS2 = f['TPS2']["TwData"]
         self._peak_data = f['PeakData']["PeakData"]
         self._peak_table = f['PeakData']["PeakTable"]
-        self._sum_spectrum = f['FullSpectra']['SumSpectrum'][()]
+        self._sum_spectrum = f['FullSpectra']['SumSpectrum'][()] #original working
         print("Extraction of sum_spectrum done")
+
+        #folowing operation very long, large dataset to be opened with Dask instead
         self._event_list = f['FullSpectra']['EventList'][()]
         print("Extraction of event_list done")
+
         self._mass_axis = f['FullSpectra']['MassAxis'][()]
         print("Extraction of mass_axis done")
 
@@ -76,6 +84,7 @@ class TOF_SIMS :
         plt.close()
         return fig
 
+
     def opened(TOF_SIMS):
         """
         Class method displaying how many datasets have been opened
@@ -83,7 +92,8 @@ class TOF_SIMS :
         print("{} datasets have been opened".format(TOF_SIMS.datasets_opened))
     opened = classmethod(opened)
 
-    def plot_buf_times(self,cmap = "gray"):
+
+    def plot_buf_times(self, cmap = "viridis" ):
         """
         Plots BufTimes
         """
@@ -91,7 +101,8 @@ class TOF_SIMS :
         plt.colorbar()
         plt.show()
 
-    def plot_section_of_3D_dataset(self,three_D_array,section,mode,cmap):
+
+    def plot_section_of_3D_dataset(self,three_D_array,section,mode,cmap = "viridis"):
         """
         Method ploting a given section of a 3D dataset
 
@@ -169,7 +180,7 @@ class TOF_SIMS :
                     pass
         plt.show()
 
-    def plot_peak_data_sections(self,cmap = 'jet',x=0,y=0,z=0, mass = 1 ,fixed_dimension = "x" , parsed_dimension = "m",start = 0,n_plotx = 4, n_ploty = 4, figsize = 18):
+    def plot_peak_data_sections(self,cmap = "viridis" ,x=0,y=0,z=0, mass = 1 ,fixed_dimension = "x" , parsed_dimension = "m",start = 0,n_plotx = 4, n_ploty = 4, figsize = 18):
         """
         """
         if fixed_dimension == "m":
@@ -191,7 +202,7 @@ class TOF_SIMS :
         self.plot_sections_of_4D_dataset(self._peak_data,cmap ,x,y,z,mass,mode,start,n_plotx , n_ploty, figsize)
 
 
-    def plot_TSP2_section(self,cmap = "jet", mode = "z", section = 0 ):
+    def plot_TSP2_section(self,cmap = "viridis", mode = "z", section = 0 ):
         """
         plot TSP2
         """
@@ -223,7 +234,7 @@ class TOF_SIMS :
         plt.show()
 
 
-    def plot_peak_data__single_frame(self,mode = "xy", cmap="jet",x=0,y=0,z=0,m=1):
+    def plot_peak_data__single_frame(self,mode = "xy", cmap="viridis",x=0,y=0,z=0,m=1):
         """
         Plot single peak_data frame
         mode : str
@@ -241,13 +252,13 @@ class TOF_SIMS :
         transposes and transforms the array
         """
         dim = TOF_SIMS.dim
-        print("dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]]",dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]])
+        #print("dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]]",dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]])
         new_array = np.transpose(fourD_array,axes=(dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]] ))
         return np.sum(new_array,3) #sum over the last axis
 
 
     @lru_cache(maxsize = cache_size)
-    def max_proj(self,fourD_array, mode , figsize = (13,13),dpi = 100 ):
+    def max_proj(self,fourD_array, mode , figsize = (13,13),dpi = 100,cmap = "viridis" ):
         """
         Create a max projection with first two letters from mode as axes to be displayed, third is the one to be fixed, last the one to be summd
         """
@@ -265,7 +276,7 @@ class TOF_SIMS :
         for i in range ( ceil(sqrt( proj.shape[2])) ):
             for j in range ( ceil(sqrt( proj.shape[2])) ):
                 try:
-                    axs[i, j].imshow(proj[ : , : , index ])
+                    axs[i, j].imshow(proj[ : , : , index ],cmap=cmap)
                     axs[i , j ].set_title(index)
                     axs[i , j ].axis('off')
                 except:
@@ -276,7 +287,8 @@ class TOF_SIMS :
         #return fig object to allow user to save it using .savefig() method from matplotlib
         return fig
 
-    def max_proj_peak_data(self, axes_displayed = "xy", axis_parsed = "z", axis_max_projection = "n", figsize = 20 ):
+
+    def max_proj_peak_data(self, axes_displayed = "xy", axis_parsed = "z", axis_max_projection = "n", figsize = 20, cmap = "viridis" ):
         """
         Create a max projection with first two axes to be displayed,
            third axis to be parsed, last is axis to be summed
@@ -287,7 +299,7 @@ class TOF_SIMS :
         axes_displayed = axes_displayed[::-1]
         print("Subplot represent individual " + axis_parsed + " with sub plots row = " + axes_displayed[0] + "-axis, sub plots column = " + axes_displayed[1] + "-axis projected over " + axis_max_projection + "-axis" )
         mode = self.trans_mode(axes_displayed + axis_parsed + axis_max_projection) #add axes in correct order and changes n to m
-        self.max_proj(self._peak_data,mode,figsize)
+        self.max_proj(self._peak_data,mode,figsize,cmap = cmap)
 
 
     def trans_mode(self,mode):
@@ -319,7 +331,7 @@ class TOF_SIMS :
             return proj[:,:,:]
 
 
-    def plot_max_proj_peak_data(self,mode = "z", mass = "all",cmap = "jet" , figsize=(5,5) ):
+    def plot_max_proj_peak_data(self,mode = "z", mass = "all",cmap = "viridis" , figsize=(5,5) ):
         projection = self.max_proj_isotope(self.peak_data,mode,mass)
         fig = plt.figure(figsize=figsize)
         plt.imshow(projection,cmap=cmap)
@@ -381,14 +393,13 @@ class TOF_SIMS :
         return fig
 
 
-
-    def three_D_plot(self,df, figsize_x , figsize_y ):
+    def three_D_plot(self,df, figsize_x , figsize_y,cmap = "viridis" ):
         """
         """
         fig = plt.figure(figsize=(figsize_x, figsize_y))
         ax = fig.add_subplot(111, projection='3d')
         #colormap = np.linspace(df['v'].min(),df['v'].max())
-        ax.scatter(df['x'], df['y'], df['z'], c = df['v'] ,  alpha=0.7, cmap = "plasma" )
+        ax.scatter(df['x'], df['y'], df['z'], c = df['v'] ,  alpha=0.7, cmap = cmap )
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
@@ -533,7 +544,7 @@ class TOF_SIMS :
             ax.tick_params(labelbottom=False, labelleft=False)
 
 
-    def grid_proj_isotope(self, isotope=12, color = "gray", size = 12, cmap = "gray"):
+    def grid_proj_isotope(self, isotope=12, color = "gray", size = 12, cmap = "viridis"):
         """Creates gridspec with every max projections for a given isotope"""
 
         fig = plt.figure(constrained_layout=False,figsize=(size,size))
