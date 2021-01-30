@@ -14,10 +14,8 @@ Some of the functions available so far:
 * Read in the complete header of the file. Get access to every setting of the machine recorded at the time of the experiment. This includes:
 
 # Instructions
-
 Code in TOF-SIMS Notebook.ipynb should be self-explanatory.  If needed feel free to contact us at remi.branco@hotmail.fr or daniel.thomas.oldfield@gmail.com
 
 
-This is a simple example package. You can use
-[Github-flavored Markdown](https://guides.github.com/features/mastering-markdown/)
-to write your content.
+# What's next
+Some machine learning (PCA, T-SNE), 3D plots, interactive graphs to explore datasets, DASK to open very large datasets...
