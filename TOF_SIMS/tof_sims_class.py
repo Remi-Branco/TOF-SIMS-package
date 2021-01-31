@@ -8,8 +8,11 @@ from math import ceil,sqrt
 from functools import lru_cache
 import plotly.graph_objects as go
 import plotly.express as px
+import os
+#from threading import Thread,RLock
 
-
+#remember the . before thread_classes !
+#from .thread_classes import Flattener, give_threads, start_batch
 
 cache_size = 3 #value for lru_cache
 
@@ -51,17 +54,20 @@ class TOF_SIMS :
         self._file_name = filename.split("/")[-1]
         print("Opening {}".format(self._file_name))
         self.file_path = filename[0:-len(filename.split("/")[-1])] #remove characters corresponding to filename
-        self.fibimage = f['FIBImages']['Image0000']['Data']
+        self.fibimage = f['FIBImages']['Image0000']['Data'][()]
         self._buf_times = f['TimingData']['BufTimes']
         self._TPS2 = f['TPS2']["TwData"]
-        self._peak_data = f['PeakData']["PeakData"]
+
+        #  The [()] means save it as a numpy array, not reference in h5py
+        self._peak_data = f['PeakData']["PeakData"][()]
         self._peak_table = f['PeakData']["PeakTable"]
         self._sum_spectrum = f['FullSpectra']['SumSpectrum'][()] #original working
         print("Extraction of sum_spectrum done")
 
-        #folowing operation very long, large dataset to be opened with Dask instead
-        self._event_list = f['FullSpectra']['EventList'][()]
-        print("Extraction of event_list done")
+        #folowing operation very long, removed for debugging faster
+        #self._event_list = f['FullSpectra']['EventList'][()]
+        #print("Extraction of event_list done")
+        print("Extraction of event_list done removed for debugging, remember to put it back")
 
         self._mass_axis = f['FullSpectra']['MassAxis'][()]
         print("Extraction of mass_axis done")
@@ -362,9 +368,6 @@ class TOF_SIMS :
 
 
 
-
-
-
     @lru_cache(maxsize = cache_size)
     def filter_sum_spectrum_vs_mass_axis(self,mass_min,mass_max,sum_spectrum_min,sum_spectrum_max):
         df = self._sum_mass
@@ -378,7 +381,7 @@ class TOF_SIMS :
 
 
 
-    def plot_sum_spectrum_vs_mass_axis(self, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(6.5, 6.5)):
+    def plot_sum_spectrum_vs_mass_axis(self, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(6.5, 6.5), cmap = "viridis"):
         """
         """
         #filter dataset, use lru_cache to speed up
@@ -393,7 +396,7 @@ class TOF_SIMS :
         return fig
 
 
-    def three_D_plot(self,df, figsize_x , figsize_y,cmap = "viridis" ):
+    def three_D_plot(self,df, figsize_x , figsize_y, cmap = "viridis" ):
         """
         """
         fig = plt.figure(figsize=(figsize_x, figsize_y))
@@ -405,10 +408,12 @@ class TOF_SIMS :
         ax.set_zlabel('z')
         plt.show()
 
-    @lru_cache(maxsize = cache_size)
-    def convert_to_flat(self,four_D_array, threshold ,mass ):
+
+
+    def convert_to_flat(self,four_D_array, threshold , mass ):
         """
-        Convert 3D numpy array to 3 clumns"""
+        Convert 3D numpy array to 4 columns
+        """
 
         #create empty lists
         x = []
@@ -429,22 +434,19 @@ class TOF_SIMS :
 
         #convert to dataframe
         df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v})
+        print(df.shape)
         return df
 
 
-    def three_D_plot_isotope(self,fourD_array, mass , threshold, figsize_x , figsize_y ):
+    def three_D_plot_isotope(self, mass = 12 , threshold = 0.5, figsize_x=15 , figsize_y=12 ,cmap = "viridis"):
         """
         Create a 3D plot using peakData.
         """
         #flaten array
-        df = self.convert_to_flat(fourD_array, threshold, mass)
+        df = self.convert_to_flat( self.peak_data , threshold , mass)
         #plot
-        self.three_D_plot(df,figsize_x , figsize_y )
+        self.three_D_plot(df,figsize_x , figsize_y ,cmap)
 
-    def three_D_plot_peak_data(self,mass = 208, threshold = 0,figsize_x =15,figsize_y=12):
-        """
-        """
-        self.three_D_plot_isotope(self.peak_data, mass, threshold, figsize_x , figsize_y  )
 
     def plot_isosurface(self,fourD_array, mass, threshold,isomin ,isomax):
         """
@@ -500,6 +502,7 @@ class TOF_SIMS :
         used by plot_abundance
         """
         return np.sum(self._peak_data,axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
+
 
     def plot_abundance(self, projection_axis = "z",mass = [1]):
         """

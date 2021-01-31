@@ -7,11 +7,13 @@ Some of the functions available so far:
 * Generate top, sides projections
 * Plot surface before FIB-ing
 * Plot detected masses
-* Quickly generate maximal projections for a given axis (x,y,z) and every isotopes/masses (usefull to have a quick look at detected species).
+* Quickly generate maximal projections for a given axis (x,y,z) and every isotopes/masses (useful to have a quick look at detected species).
 * Inspect top, side and depth projections for a given isotope/mass
 * Plot (and superpose) the abundance of species over any axis.
 * Generate overlays of maximal projections (e.g. overlay top-projection for masses 27, 28 and 48)
-* Read in the complete header of the file. Get access to every setting of the machine recorded at the time of the experiment. This includes:
+* Read in the complete header of the file. Get access to every setting of the machine recorded at the time of the experiment.
+* Save most of the graphs as-is.
+*
 
 # Instructions
 Code in TOF-SIMS Notebook.ipynb should be self-explanatory.  If needed feel free to contact us at remi.branco@hotmail.fr or daniel.thomas.oldfield@gmail.com
@@ -19,3 +21,7 @@ Code in TOF-SIMS Notebook.ipynb should be self-explanatory.  If needed feel free
 
 # What's next
 Some machine learning (PCA, T-SNE), 3D plots, interactive graphs to explore datasets, DASK to open very large datasets...
+
+# Contribution
+Images : Dr Daniel Thomas Oldfield
+Code : by Dr Rémi Branco, Dr Daniel Thomas Oldfield and students (Dan)
