@@ -9,10 +9,13 @@ from functools import lru_cache
 import plotly.graph_objects as go
 import plotly.express as px
 import os
+
+
 #from threading import Thread,RLock
 
 #remember the . before thread_classes !
-#from .thread_classes import Flattener, give_threads, start_batch
+from .analysis import PCA_data
+
 
 cache_size = 3 #value for lru_cache
 
@@ -560,6 +563,43 @@ class TOF_SIMS :
         #return figure to be able to save it using .savefig() method from matplotlib
         plt.close()
         return fig
+
+
+
+
+    def convert_to_flat_PCA(self , four_D_array , masses , lower_threshold):
+        """
+        Convert 3D numpy array to 4 columns
+        mass_threshold is a tuple (mass,threshold)
+        """
+        #create empty lists
+        x = []
+        y = []
+        z = []
+        v = []
+        isotope_mass = []
+        #print(mass)
+        for m in masses:
+            for i in range(four_D_array.shape[0]):
+                for j in range(four_D_array.shape[1]):
+                    #print("J",j)
+                    for k in range(four_D_array.shape[2]):
+                        if (four_D_array[i,j,k,mt[0]] >= mt[1]):
+                            #print(i,j,k,four_D_array[i,j,k,mass])
+                            x.append(j)
+                            y.append(k)
+                            z.append(i)
+                            v.append(four_D_array[i,j,k,mt[0] ] )
+                            isotope_mass.append(mt[0])
+
+        #convert to dataframe
+        df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v,'mass':isotope_mass})
+        print(df.shape[0],"points")
+        print(df.groupby('mass').count())
+        return df
+
+    def PCA_peak_data(self , mass_start = 1, mass_stop = 250, x_max =30, y_max=30, z_max =30):
+        PCA_data(self.peak_data , mass_start , mass_stop, x_max , y_max, z_max )
 
 
 
