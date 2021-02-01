@@ -252,7 +252,7 @@ class TOF_SIMS :
         self.plot_unique_section_4D_dataset(self._peak_data, cmap ,x ,y ,z ,m , mode )
 
 
-    @lru_cache(maxsize = cache_size)
+
     def transpose_then_max_proj(self,mode,fourD_array):
         """
         transposes and transforms the array
@@ -263,7 +263,6 @@ class TOF_SIMS :
         return np.sum(new_array,3) #sum over the last axis
 
 
-    @lru_cache(maxsize = cache_size)
     def max_proj(self,fourD_array, mode , figsize = (13,13),dpi = 100,cmap = "viridis" ):
         """
         Create a max projection with first two letters from mode as axes to be displayed, third is the one to be fixed, last the one to be summd
@@ -321,7 +320,7 @@ class TOF_SIMS :
         return returned_mode
 
 
-    @lru_cache(maxsize = 3 * 250)
+
     def max_proj_isotope(self,four_D_array, mode , isotope  ):
         """
         Create a max projection with first two letters from mode as axes to be summed.
@@ -396,85 +395,69 @@ class TOF_SIMS :
         return fig
 
 
-    def three_D_plot(self,df, figsize_x , figsize_y, cmap = "viridis" ):
+    def convert_to_flat(self,four_D_array, mass_threshold ):
         """
+        Convert 3D numpy array to 4 columns
+        mass_threshold is a tuple (mass,threshold)
+        """
+        #create empty lists
+        x = []
+        y = []
+        z = []
+        v = []
+        isotope_mass = []
+        #print(mass)
+        for mt in mass_threshold:
+            print("mass",mt[0],"threshold",mt[1])
+            for i in range(four_D_array.shape[0]):
+                for j in range(four_D_array.shape[1]):
+                    #print("J",j)
+                    for k in range(four_D_array.shape[2]):
+                        if (four_D_array[i,j,k,mt[0]] >= mt[1]):
+                            #print(i,j,k,four_D_array[i,j,k,mass])
+                            x.append(j)
+                            y.append(k)
+                            z.append(i)
+                            v.append(four_D_array[i,j,k,mt[0] ] )
+                            isotope_mass.append(mt[0])
+
+        #convert to dataframe
+        df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v,'mass':isotope_mass})
+        print(df.shape[0],"points")
+        print(df.groupby('mass').count())
+        return df
+
+
+    def three_D_plot_isotope(self, mass_threshold = ((27 , 0.9 )), figsize_x=15 , figsize_y=12 ,cmap = "viridis",size = 2,depthshade=True, opacity = 0.5):
+        """
+        Create a 3D plot using peakData.
+        """
+        #flaten array
+        df = self.convert_to_flat( self.peak_data , mass_threshold)
+        #plot
+        self.three_D_plot(df,figsize_x , figsize_y ,cmap,size,depthshade, opacity=opacity)
+
+
+    def three_D_plot(self,df, figsize_x , figsize_y, cmap = "viridis",size = 2 ,depthshade=True  ,opacity = 0.7):
+        """
+        Non-interactive plots using matplotlib, fast
         """
         fig = plt.figure(figsize=(figsize_x, figsize_y))
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection="3d")
         #colormap = np.linspace(df['v'].min(),df['v'].max())
-        ax.scatter(df['x'], df['y'], df['z'], c = df['v'] ,  alpha=0.7, cmap = cmap )
+        ax.scatter(df['x'], df['y'], df['z'], c = df['mass'] , alpha=opacity, cmap = cmap, s = size, depthshade=depthshade  )
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         plt.show()
 
 
-
-    def convert_to_flat(self,four_D_array, threshold , mass ):
+    def plot_3D_scatter_plotly (self, mass_threshold = ((27 , 1.2 )) , size = 1 , opacity = 0.7,colorscale = 'Viridis',mode = 'markers'):
         """
-        Convert 3D numpy array to 4 columns
-        """
-
-        #create empty lists
-        x = []
-        y = []
-        z = []
-        v = []
-
-        for i in range(four_D_array.shape[0]):
-            for j in range(four_D_array.shape[1]):
-                #print("J",j)
-                for k in range(four_D_array.shape[2]):
-                    if (four_D_array[i,j,k,mass] >= threshold):
-                        #print(i,j,k,four_D_array[i,j,k,mass])
-                        x.append(j)
-                        y.append(k)
-                        z.append(i)
-                        v.append(four_D_array[i,j,k,mass])
-
-        #convert to dataframe
-        df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v})
-        print(df.shape)
-        return df
-
-
-    def three_D_plot_isotope(self, mass = 12 , threshold = 0.5, figsize_x=15 , figsize_y=12 ,cmap = "viridis"):
-        """
-        Create a 3D plot using peakData.
+        Interactive plot using plotly
         """
         #flaten array
-        df = self.convert_to_flat( self.peak_data , threshold , mass)
-        #plot
-        self.three_D_plot(df,figsize_x , figsize_y ,cmap)
-
-
-    def plot_isosurface(self,fourD_array, mass, threshold,isomin ,isomax):
-        """
-        """
-        #flaten array
-        df = self.convert_to_flat(fourD_array, threshold, mass)
-        #plot
-        fig = go.Figure(data=go.Isosurface(
-            x=df['x'],
-            y=df['y'],
-            z=df['z'],
-            value=df['v'],
-            isomin=isomin,
-            isomax=isomax,
-            caps=dict(x_show=False, y_show=False)
-            ))
-        fig.show()
-
-    def plot_peak_data_isosurface(self,mass = 208, threshold = 0,isomin = 0.2,isomax = 0.4):
-        """
-        """
-        self.plot_isosurface(self._peak_data, mass , threshold ,isomin ,isomax)
-
-    def plot_3D_scatter_plotly (self,fourD_array, mass, threshold,size,opacity,colorscale,mode):
-        """
-        """
-        #flaten array
-        df = self.convert_to_flat(fourD_array, threshold, mass)
+        df = self.convert_to_flat(self.peak_data, mass_threshold)
         #plot
         fig = go.Figure(data = [go.Scatter3d(x = df['x'],
                                              y = df['y'],
@@ -482,18 +465,19 @@ class TOF_SIMS :
                                              mode = mode,
                                              marker = dict(
                                                  size=size ,
-                                                 color = df['v'],
+                                                 color = df['mass'],
                                                  colorscale = colorscale,
                                                  opacity = opacity))])
         fig.update_layout(margin =dict(l=0, r=0, b=0, t=0))
         fig.show()
 
-
-    def plot_peak_data_3Dscatter(self,mass = 208, threshold = 0, size = 1,opacity=0.5, colorscale = 'Viridis',mode = 'markers'):
+    '''
+    def plot_peak_data_3Dscatter(self,mass_threshold = ((27 , 1.2 )), size = 1 , opacity=0.5 , colorscale = 'Viridis',mode = 'markers'):
         """
+        Interactive plot using plotly
         """
-        self.plot_3D_scatter_plotly(self._peak_data, mass , threshold,size,opacity,colorscale,mode )
-
+        self.plot_3D_scatter_plotly(self._peak_data, mass_threshold , size , opacity , colorscale , mode )
+    '''
 
 
     @lru_cache(maxsize = cache_size)

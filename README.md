@@ -12,15 +12,17 @@ Some of the functions available so far:
 * Plot (and superpose) the abundance of species over any axis.
 * Generate overlays of maximal projections (e.g. overlay top-projection for masses 27, 28 and 48)
 * Read in the complete header of the file. Get access to every setting of the machine recorded at the time of the experiment.
-* Save most of the graphs as-is.
-*
+* Save most of the plots.
+* 3D plot (static and interactive)
 
 # Instructions
 Code in TOF-SIMS Notebook.ipynb should be self-explanatory.  If needed feel free to contact us at remi.branco@hotmail.fr or daniel.thomas.oldfield@gmail.com
 
 
 # What's next
-Some machine learning (PCA, T-SNE), 3D plots, interactive graphs to explore datasets, DASK to open very large datasets...
+* Machine learning (PCA, T-SNE)
+* Better 3D plots using open3D
+* Data reprocessing/peak-refining
 
 # Contribution
 Images : Dr Daniel Thomas Oldfield
