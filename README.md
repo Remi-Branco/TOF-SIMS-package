@@ -23,7 +23,3 @@ Code in TOF-SIMS Notebook.ipynb should be self-explanatory.  If needed feel free
 * Machine learning (PCA, T-SNE)
 * Better 3D plots using open3D
 * Data reprocessing/peak-refining
-
-# Contribution
-Images : Dr Daniel Thomas Oldfield
-Code : by Dr Rémi Branco, Dr Daniel Thomas Oldfield and students (Dan)
