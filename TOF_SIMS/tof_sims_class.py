@@ -566,39 +566,6 @@ class TOF_SIMS :
 
 
 
-    '''
-    def convert_to_flat_PCA(self , four_D_array , masses , lower_threshold):
-        """
-        Convert 3D numpy array to 4 columns
-        mass_threshold is a tuple (mass,threshold)
-        """
-        #create empty lists
-        x = []
-        y = []
-        z = []
-        v = []
-        isotope_mass = []
-        #print(mass)
-        for m in masses:
-            for i in range(four_D_array.shape[0]):
-                for j in range(four_D_array.shape[1]):
-                    #print("J",j)
-                    for k in range(four_D_array.shape[2]):
-                        if (four_D_array[i,j,k,mt[0]] >= mt[1]):
-                            #print(i,j,k,four_D_array[i,j,k,mass])
-                            x.append(j)
-                            y.append(k)
-                            z.append(i)
-                            v.append(four_D_array[i,j,k,mt[0] ] )
-                            isotope_mass.append(mt[0])
-
-        #convert to dataframe
-        df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v,'mass':isotope_mass})
-        print(df.shape[0],"points")
-        print(df.groupby('mass').count())
-        return df
-    '''
-
     def PCA_peak_data(self , mass_start = 1 , mass_stop = 250, x_max = 10 , y_max = 10 , z_max =30, principal_components=3):
         self.PCA_peak_data = PCA_p(self.peak_data , x_max = x_max , y_max = y_max, z_max =z_max ,principal_components = principal_components, mass_start = mass_start , mass_stop = mass_stop )
 
