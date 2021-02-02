@@ -1,9 +1,0 @@
-MANIFEST.in
-README.md
-setup.py
-TOF_SIMS/__init__.py
-TOF_SIMS/tof_sims_class.py
-TOF_SIMS.egg-info/PKG-INFO
-TOF_SIMS.egg-info/SOURCES.txt
-TOF_SIMS.egg-info/dependency_links.txt
-TOF_SIMS.egg-info/top_level.txt
