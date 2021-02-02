@@ -14,7 +14,7 @@ import os
 #from threading import Thread,RLock
 
 #remember the . before thread_classes !
-from .analysis import PCA_data
+from .analysis import PCA_p
 
 
 cache_size = 3 #value for lru_cache
@@ -566,7 +566,7 @@ class TOF_SIMS :
 
 
 
-
+    '''
     def convert_to_flat_PCA(self , four_D_array , masses , lower_threshold):
         """
         Convert 3D numpy array to 4 columns
@@ -597,11 +597,10 @@ class TOF_SIMS :
         print(df.shape[0],"points")
         print(df.groupby('mass').count())
         return df
+    '''
 
-    def PCA_peak_data(self , mass_start = 1, mass_stop = 250, x_max =30, y_max=30, z_max =30):
-        PCA_data(self.peak_data , mass_start , mass_stop, x_max , y_max, z_max )
-
-
+    def PCA_peak_data(self , mass_start = 1 , mass_stop = 250, x_max = 10 , y_max = 10 , z_max =30, principal_components=3):
+        self.PCA_peak_data = PCA_p(self.peak_data , x_max = x_max , y_max = y_max, z_max =z_max ,principal_components = principal_components, mass_start = mass_start , mass_stop = mass_stop )
 
 
     ##_________________________PROPERTIES
