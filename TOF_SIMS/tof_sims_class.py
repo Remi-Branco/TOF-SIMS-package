@@ -14,7 +14,8 @@ import os
 #from threading import Thread,RLock
 
 #remember the . before thread_classes !
-from .analysis import PCA_p
+#from .analysis import PCA_p
+from .multivariate_analysis import PCA_pd
 
 
 cache_size = 3 #value for lru_cache
@@ -79,6 +80,9 @@ class TOF_SIMS :
 
         #increment dataset_opened each time a new dataset is opened (to limit memory usage at some point; not implemented)
         TOF_SIMS.datasets_opened +=1
+
+        #self.principalDF = pd.DataFrame()
+        #self.df_PCA = pd.DataFrame()
 
     def plot_FIBImage(self, cmap = 'gray',figsize = (10,10)):
         """
@@ -383,19 +387,23 @@ class TOF_SIMS :
 
 
 
-    def plot_sum_spectrum_vs_mass_axis(self, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(6.5, 6.5), cmap = "viridis"):
+    def plot_sum_spectrum_vs_mass_axis(self, interactive = False, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(6.5, 6.5), cmap = "viridis"):
         """
         """
         #filter dataset, use lru_cache to speed up
         filtered_sum_mass = self.filter_sum_spectrum_vs_mass_axis(mass_min,mass_max,sum_spectrum_min,sum_spectrum_max)
 
-        fig, ax = plt.subplots(figsize = figsize)
-        sns.despine(fig, left=True, bottom=True)
-        splot = sns.lineplot(x="Mass Axis", y="Sum Spectrum", sizes=(1, 8),
-                             linewidth=1, data= filtered_sum_mass  , ax=ax).set_title(title)
+        if interactive:
+            fig = px.line(filtered_sum_mass, x="Mass Axis", y="Sum Spectrum", title='Detected species')
+            fig.show()
 
-        plt.close()
-        return fig
+        else:
+            fig, ax = plt.subplots(figsize = figsize)
+            sns.despine(fig, left=True, bottom=True)
+            splot = sns.lineplot(x="Mass Axis", y="Sum Spectrum", sizes=(1, 8),
+                                 linewidth=1, data= filtered_sum_mass  , ax=ax).set_title(title)
+            plt.close()
+            return fig
 
 
     def convert_to_flat(self,four_D_array, mass_threshold ):
@@ -566,8 +574,56 @@ class TOF_SIMS :
 
 
 
-    def PCA_peak_data(self , mass_start = 1 , mass_stop = 250, x_max = 10 , y_max = 10 , z_max =30, principal_components=3):
-        self.PCA_peak_data = PCA_p(self.peak_data , x_max = x_max , y_max = y_max, z_max =z_max ,principal_components = principal_components, mass_start = mass_start , mass_stop = mass_stop )
+    def PCA_peak_data(self , mass_start = 1 , mass_stop = 250, x_min = 0, x_max = 10 ,y_min = 0, y_max = 10 ,z_min = 0, z_max =30, principal_components=3, per_mass = True):
+        self.PCA_peak_data = PCA_p(self.peak_data , x_min = x_min , x_max = x_max , y_min = y_min , y_max = y_max , z_min = z_min, z_max =z_max ,principal_components = principal_components, mass_start = mass_start , mass_stop = mass_stop, per_mass = per_mass)
+
+
+    def isotope_barchart(self):
+        """"""
+        e = self.peak_data.sum(axis=0).sum(axis=0).sum(axis=0)
+        masses = [m for m in range(len(e))]
+        #print(masses)
+        df_bar = pd.DataFrame(columns = ['masses','detected events (log 10)'])
+        df_bar['masses'] = masses
+        df_bar['detected events'] = np.log10(e)
+        #print(df_bar.head())
+        fig = px.bar(df_bar[1:], x='masses', y='detected events (log 10)')
+        fig.show()
+
+    def PCA_masses(self , x_min = 0 , x_max = 1 , y_min = 0 , y_max = 1, z_min = 0, z_max = 1, principal_components = 3 , mass_start = 1 , mass_stop = 249 ):
+        """
+        perform PCA on peak_data
+        """
+        self.principalDF, self.df_PCA = PCA_pd(self.peak_data, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+        #PCA_2D(self.principalDf , component_x = 1 , component_y = 2 )
+
+    def principal_components(self):
+        """
+        Function ploting explained variance
+        """
+        sns.lineplot(data = self.df_PCA, x = 'n', y = 'explained variance')
+        #PCA_show_pc(self.df_PCA)
+
+    def  pca_2D(self,component_x = 1 , component_y = 2):
+        """
+        component_x : int or str(of int)
+        represents which principal component to plot
+        """
+        component_x = 'principal component ' + str(component_x)
+        component_y = 'principal component ' + str(component_y)
+        fig = px.scatter(x=self.principalDF[component_x] , y=self.principalDF[component_y] , color = self.principalDF['masses'] )
+        fig.show()
+        #PCA_2D(self.principalDf , component_x = 1 , component_y = 2 )
+
+    def pca_3D(self):
+        """
+        Show PC1,2 and 3 in 3D interactive plot
+        """
+        fig = px.scatter_3d(self.principalDF, x='principal component 1', y='principal component 2', z='principal component 3',
+                         color='masses')
+        fig.show()
+        #PCA_3D(self.principalDf )
+
 
 
     ##_________________________PROPERTIES
