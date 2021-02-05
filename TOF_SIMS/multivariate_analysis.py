@@ -1,36 +1,33 @@
 import numpy as np
-from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import seaborn as sns
 import pandas as pd
 import matplotlib as plt
 import plotly.express as px
-#from sklearn.decomposition import KernelPCA
+from sklearn.decomposition import KernelPCA, PCA, IncrementalPCA
+from sklearn.manifold import TSNE
 
 
 
-
-
-def PCA_pd(array, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop ):
+def PCA_pd(array, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop,with_std, with_mean ):
     """
     PCA on peak_data
     """
 
     df = pd.DataFrame(columns = ["explained variance",'x','n'])
-    #transform data, self.voxel is created in the function
     voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
     #print(self.voxels.shape)
 
-    per_mass = True
     # Standardise the features before PCA
-    x = StandardScaler().fit_transform(voxels[1:,:]) # do not scale first row as it contains masses
-    if per_mass :
-        x = x.T #necessary to have each element per row
+    scaler = StandardScaler(with_std = with_std,with_mean = with_mean)
+    x = scaler.fit_transform(voxels[1:,:])
+
+    x = x.T #necessary to have element per row and voxels per column
     #print(8 , "\n" , x.shape )
     #perform PCA on data
     pca = PCA(n_components=principal_components)
     principalComponents = pca.fit(x)
-    PCA(n_components=principal_components)
+    #PCA(n_components=principal_components)
     df['explained variance'] = pca.explained_variance_ratio_
     df['x'] = pca.singular_values_
     df['n'] = [i for i in range(1,df.shape[0]+1,1)]
@@ -46,13 +43,13 @@ def PCA_pd(array, x_min,x_max , y_min,y_max,z_min, z_max, principal_components ,
     #not needed anymore -> generate the features
     #features = [i for i in range(self.mass_start,self.mass_stop,1)]
     #self.principalDf["masses"] = features
-    if per_mass:
-        principalDf["masses"] = voxels[0,:]
-    else:
-        principalDf["masses"] = [i for i in range(principalDf.shape[0])]
-    #print(11 , "\n" ,self.principalDf.head())
+
+    principalDf["masses"] = voxels[0,:]
+
+    # keep but not usefull yet   principalDf["masses"] = [i for i in range(principalDf.shape[0])]
+
     print("done")
-    return (principalDf , df)
+    return (principalDf , df, voxels)
 
 
 def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , principal_components , mass_start , mass_stop):
@@ -65,19 +62,12 @@ def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , principal_comp
     #get a slice of the data
     #we know that first channel (mass = 0 ) is just noise so remove it by adjusting mass_start = 1
     voxels = array[x_min:x_max , y_min:y_max , z_min: z_max , mass_start : mass_stop]
+
     dim = voxels.shape[3] #step needs to be done here
-    #print(0,self.voxels.shape[3])
-    #print(1,self.voxels.shape)
 
-    #flatten (put all voxels in a line vector)
-    voxels = voxels.flatten()
-    #print(2,self.voxels.shape)
-
-    #since we flattened, every 250 is a voxel (e.g. 0:249 is voxel #1 then 250 to 499 voxel#2,...
-    #therefore reshape in square matrix of size [25 x 25 x 25 , 250 ]
-    voxels = voxels.reshape(-1 ,dim)
-
-    #print(3,self.voxels.shape)
+    #transform 4D dataset into long list of masses with one voxel per row and one mass per column
+    voxels = voxels.reshape(-1,dim)
+    print()
     #append masses to top of array
     m = np.array(([i for i in range(mass_start , mass_stop , 1 )],)) #this is a one row array
     #print(m.shape,"\n",m,"\n")
@@ -101,3 +91,89 @@ def PCA_3D(principalDf):
     fig = px.scatter_3d(principalDf, x='principal component 1', y='principal component 2', z='principal component 3',
                   color='masses')
     fig.show()
+
+def kPCA(array , kernel , gamma , x_min , x_max , y_min , y_max , z_min , z_max , principal_components , mass_start , mass_stop ):
+    """
+    kernel PCA
+    """
+    df = pd.DataFrame(columns = ["explained variance",'x','n'])
+    #transform data, self.voxel is created in the function
+    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+
+    scaler = StandardScaler(with_std = False)
+    x = scaler.fit_transform(voxels[1:,:])
+
+    x = x.T #important to have one element per row
+    kPCA = KernelPCA(n_components=principal_components, kernel=kernel, gamma = gamma)
+    X_transformed = kPCA.fit_transform(x)
+    '''
+    df['explained variance'] = kPCA.explained_variance_ratio_
+    df['x'] = kPCA.singular_values_
+    df['n'] = [i for i in range(1,df.shape[0]+1,1)]
+    '''
+
+    #print(1,X_transformed.shape)
+    lbl = ["principal component " + str(i) for i in range(principal_components)]
+    principalDf = pd.DataFrame(data = X_transformed, columns = lbl)
+    principalDf["masses"] = voxels[0,:]
+    return (principalDf, df, voxels)
+
+
+
+def incPCA(array ,n_batches, x_min , x_max , y_min , y_max , z_min , z_max , principal_components , mass_start , mass_stop ,with_std, with_mean):
+    """
+    Incremental PCA
+    """
+    df = pd.DataFrame(columns = ["explained variance",'x','n'])
+    #transform data, self.voxel is created in the function
+    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+
+    # Scale but NOT standardise features before PCA
+    scaler = StandardScaler(with_std = with_std,with_mean = with_mean)
+    x = scaler.fit_transform(voxels[1:,:])
+
+
+    x = x.T #important to have one element per row
+
+    incPCA = IncrementalPCA(n_components=principal_components)
+
+    for X_batch in np.array_split(x , n_batches):
+        incPCA.partial_fit(X_batch)
+    X_transformed = incPCA.transform(x)
+
+    df['explained variance'] = incPCA.explained_variance_ratio_
+    df['x'] = incPCA.singular_values_
+    df['n'] = [i for i in range(1,df.shape[0]+1,1)]
+
+    #print(1,X_transformed.shape)
+    lbl = ["principal component " + str(i) for i in range(principal_components)]
+    principalDf = pd.DataFrame(data = X_transformed, columns = lbl)
+    principalDf["masses"] = voxels[0,:]
+    return (principalDf, df, voxels)
+
+def t_SNE(array ,n_components, perplexity,n_iter, x_min , x_max , y_min , y_max , z_min , z_max  , mass_start , mass_stop , learning_rate):
+    """
+    T-SNE
+    """
+    df = pd.DataFrame(columns = ["explained variance",'x','n'])
+    #transform data, self.voxel is created in the function
+    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, n_components , mass_start , mass_stop)
+
+    # Standardise the features before PCA
+    x = StandardScaler().fit_transform(voxels[1:,:]) # do not scale first row as it contains masses
+
+    x = x.T #important to have one element per row
+
+    #time_start = time.time()
+    tsne = TSNE(n_components=n_components, verbose=1, perplexity=perplexity, n_iter=n_iter,learning_rate = learning_rate)
+
+    tsne_results = tsne.fit_transform(x)
+
+    principalDf = pd.DataFrame({"principal component 1": tsne_results[:,0],
+                          "principal component 2": tsne_results[:,1]})
+
+    #lbl = ["principal component " + str(i) for i in range(principal_components)]
+    #principalDf = pd.DataFrame(data = X_transformed, columns = lbl)
+    principalDf["masses"] = voxels[0,:]
+    #principalDf["masses"] = features
+    return (principalDf, df, voxels)

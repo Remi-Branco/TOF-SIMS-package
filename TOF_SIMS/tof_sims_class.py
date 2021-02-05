@@ -14,8 +14,8 @@ import os
 #from threading import Thread,RLock
 
 #remember the . before thread_classes !
-#from .analysis import PCA_p
-from .multivariate_analysis import PCA_pd
+from .multivariate_analysis import kPCA, incPCA, t_SNE
+from .multivariate_analysis import PCA_pd as PCA
 
 
 cache_size = 3 #value for lru_cache
@@ -27,6 +27,7 @@ class TOF_SIMS :
     #class attribute to count the number of datasets opened
     datasets_opened = 0
 
+    #dim = {"x":1,"y":2,"z":0,"n":3} #to find correspondence between letters and axes
     dim = {"x":1,"y":2,"z":0,"n":3} #to find correspondence between letters and axes
 
 
@@ -64,6 +65,7 @@ class TOF_SIMS :
 
         #  The [()] means save it as a numpy array, not reference in h5py
         self._peak_data = f['PeakData']["PeakData"][()]
+        self._peak_data = np.flip(self._peak_data, axis = 0)  #flip x axis to have first slice as sample surface
         self._peak_table = f['PeakData']["PeakTable"]
         self._sum_spectrum = f['FullSpectra']['SumSpectrum'][()] #original working
         print("Extraction of sum_spectrum done")
@@ -71,7 +73,8 @@ class TOF_SIMS :
         #folowing operation very long, removed for debugging faster
         #self._event_list = f['FullSpectra']['EventList'][()]
         #print("Extraction of event_list done")
-        print("Extraction of event_list done removed for debugging, remember to put it back")
+        #print("Extraction of event_list done removed for debugging, remember to put it back")
+
 
         self._mass_axis = f['FullSpectra']['MassAxis'][()]
         print("Extraction of mass_axis done")
@@ -83,6 +86,7 @@ class TOF_SIMS :
 
         #self.principalDF = pd.DataFrame()
         #self.df_PCA = pd.DataFrame()
+        print("TOF_SIMS imported successfully")
 
     def plot_FIBImage(self, cmap = 'gray',figsize = (10,10)):
         """
@@ -294,13 +298,14 @@ class TOF_SIMS :
                 except:
                     pass
                 index +=1
-
+        plt.tight_layout() ## =====
         plt.show()
         #return fig object to allow user to save it using .savefig() method from matplotlib
-        return fig
+        #curently not working
+        return plt
 
 
-    def max_proj_peak_data(self, axes_displayed = "xy", axis_parsed = "z", axis_max_projection = "n", figsize = 20, cmap = "viridis" ):
+    def projection(self, axes_displayed = "xy", axis_parsed = "z", axis_max_projection = "n", figsize = (22,22), cmap = "viridis" ):
         """
         Create a max projection with first two axes to be displayed,
            third axis to be parsed, last is axis to be summed
@@ -309,14 +314,14 @@ class TOF_SIMS :
         figsize : pyplot argument for  figure size
         """
         axes_displayed = axes_displayed[::-1]
-        print("Subplot represent individual " + axis_parsed + " with sub plots row = " + axes_displayed[0] + "-axis, sub plots column = " + axes_displayed[1] + "-axis projected over " + axis_max_projection + "-axis" )
+        print("Individual subplot represents " + axis_parsed + " axis with row = " + axes_displayed[0] + "-axis, column = " + axes_displayed[1] + "-axis projected over " + axis_max_projection + "-axis" )
         mode = self.trans_mode(axes_displayed + axis_parsed + axis_max_projection) #add axes in correct order and changes n to m
         self.max_proj(self._peak_data,mode,figsize,cmap = cmap)
 
 
     def trans_mode(self,mode):
         """
-        Sub-function used by max_proj_peak_data to change m to n, should be removed later on
+        Sub-function used by function "projection" to change m to n, should be removed later on
         """
         returned_mode = ""
         for i in mode:
@@ -387,14 +392,14 @@ class TOF_SIMS :
 
 
 
-    def plot_sum_spectrum_vs_mass_axis(self, interactive = False, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(6.5, 6.5), cmap = "viridis"):
+    def mass_spec(self, interactive = True, mass_min = 0.5, mass_max = 250, sum_spectrum_min = 0 , sum_spectrum_max = 1E10, title = "",figsize=(10, 10)):
         """
         """
         #filter dataset, use lru_cache to speed up
         filtered_sum_mass = self.filter_sum_spectrum_vs_mass_axis(mass_min,mass_max,sum_spectrum_min,sum_spectrum_max)
 
         if interactive:
-            fig = px.line(filtered_sum_mass, x="Mass Axis", y="Sum Spectrum", title='Detected species')
+            fig = px.line(filtered_sum_mass, x="Mass Axis", y="Sum Spectrum", title='Mass spectrum', labels={"Mass Axis": "Mass","Sum Spectrum": "Number of events"})
             fig.show()
 
         else:
@@ -402,6 +407,9 @@ class TOF_SIMS :
             sns.despine(fig, left=True, bottom=True)
             splot = sns.lineplot(x="Mass Axis", y="Sum Spectrum", sizes=(1, 8),
                                  linewidth=1, data= filtered_sum_mass  , ax=ax).set_title(title)
+            ax.set_xlabel('Mass')
+            ax.set_ylabel('Number of events')
+            ax.set_title('Mass spectrum')
             plt.close()
             return fig
 
@@ -562,7 +570,7 @@ class TOF_SIMS :
 
 
         fig.suptitle("Max projections for isotope " + str(isotope))
-        self.format_axes(fig, ['xy projection','xz projection','yz projection'])
+        self.format_axes(fig, ['front projection','side projection','top projection'])
 
         #plt.show()
         #if save == True:
@@ -573,13 +581,8 @@ class TOF_SIMS :
         return fig
 
 
-
-    def PCA_peak_data(self , mass_start = 1 , mass_stop = 250, x_min = 0, x_max = 10 ,y_min = 0, y_max = 10 ,z_min = 0, z_max =30, principal_components=3, per_mass = True):
-        self.PCA_peak_data = PCA_p(self.peak_data , x_min = x_min , x_max = x_max , y_min = y_min , y_max = y_max , z_min = z_min, z_max =z_max ,principal_components = principal_components, mass_start = mass_start , mass_stop = mass_stop, per_mass = per_mass)
-
-
     def isotope_barchart(self):
-        """"""
+        """To fix but not sure we need it"""
         e = self.peak_data.sum(axis=0).sum(axis=0).sum(axis=0)
         masses = [m for m in range(len(e))]
         #print(masses)
@@ -590,19 +593,41 @@ class TOF_SIMS :
         fig = px.bar(df_bar[1:], x='masses', y='detected events (log 10)')
         fig.show()
 
-    def PCA_masses(self , x_min = 0 , x_max = 1 , y_min = 0 , y_max = 1, z_min = 0, z_max = 1, principal_components = 3 , mass_start = 1 , mass_stop = 249 ):
+
+    def PCA_masses(self , x_min = 0 , x_max = 1 , y_min = 0 , y_max = 1, z_min = 0, z_max = 1, principal_components = 3 , mass_start = 1 , mass_stop = 249, with_std = False , with_mean = True ):
         """
         perform PCA on peak_data
         """
-        self.principalDF, self.df_PCA = PCA_pd(self.peak_data, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
-        #PCA_2D(self.principalDf , component_x = 1 , component_y = 2 )
+        self.principalDF, self.df_PCA, self.voxels = PCA(self.peak_data, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop, with_std , with_mean )
+
+
+    def kPCA_masses(self ,kernel = 'rbf', gamma = 0.04, x_min = 0 , x_max = 1 , y_min = 0 , y_max = 1, z_min = 0, z_max = 1, principal_components = 3 , mass_start = 1 , mass_stop = 249 ):
+        """
+        perform kernel PCA on peak_data
+        """
+        self.principalDF, self.df_PCA, self.voxels = kPCA(self.peak_data,kernel,gamma, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+
+
+    def incPCA_masses(self, n_batches, x_min , x_max , y_min , y_max , z_min , z_max , principal_components , mass_start , mass_stop, with_std = False, with_mean = True):
+        """
+        perform incremental PCA on peak_data
+        """
+        self.principalDF, self.df_PCA, self.voxels = incPCA(self.peak_data,n_batches, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop,with_std, with_mean)
+
+
+    def TSNE_masses(self, n_components, perplexity,n_iter, x_min , x_max , y_min , y_max , z_min , z_max  , mass_start , mass_stop , learning_rate):
+        """
+        perform incremental PCA on peak_data
+        """
+        self.principalDF, self.df_PCA, self.voxels = t_SNE(self.peak_data , n_components, perplexity,n_iter, x_min , x_max , y_min , y_max , z_min , z_max  , mass_start , mass_stop , learning_rate)
+
 
     def principal_components(self):
         """
         Function ploting explained variance
         """
         sns.lineplot(data = self.df_PCA, x = 'n', y = 'explained variance')
-        #PCA_show_pc(self.df_PCA)
+
 
     def  pca_2D(self,component_x = 1 , component_y = 2):
         """
@@ -613,7 +638,7 @@ class TOF_SIMS :
         component_y = 'principal component ' + str(component_y)
         fig = px.scatter(x=self.principalDF[component_x] , y=self.principalDF[component_y] , color = self.principalDF['masses'] )
         fig.show()
-        #PCA_2D(self.principalDf , component_x = 1 , component_y = 2 )
+
 
     def pca_3D(self):
         """
