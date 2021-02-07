@@ -15,7 +15,7 @@ def PCA_pd(array, x_min,x_max , y_min,y_max,z_min, z_max, principal_components ,
     """
 
     df = pd.DataFrame(columns = ["explained variance",'x','n'])
-    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+    voxels, initial_shape = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
     #print(self.voxels.shape)
 
     # Standardise the features before PCA
@@ -52,7 +52,7 @@ def PCA_pd(array, x_min,x_max , y_min,y_max,z_min, z_max, principal_components ,
     return (principalDf , df, voxels)
 
 
-def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , principal_components , mass_start , mass_stop):
+def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop):
     """
     transform 4D matrix into 2D matrix with:
         each row representing a voxel
@@ -64,7 +64,7 @@ def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , principal_comp
     voxels = array[x_min:x_max , y_min:y_max , z_min: z_max , mass_start : mass_stop]
 
     dim = voxels.shape[3] #step needs to be done here
-
+    initial_shape = voxels.shape #for reshaping labels later on
     #transform 4D dataset into long list of masses with one voxel per row and one mass per column
     voxels = voxels.reshape(-1,dim)
     print()
@@ -74,7 +74,7 @@ def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , principal_comp
     #concatenate it to top of voxels array (on top of it)
     #concatenate masses array (1,2,3,4..) as first column and
     voxels = np.concatenate((m,voxels),axis =0)
-    return voxels
+    return voxels, initial_shape
 
 
 
@@ -98,7 +98,7 @@ def kPCA(array , kernel , gamma , x_min , x_max , y_min , y_max , z_min , z_max 
     """
     df = pd.DataFrame(columns = ["explained variance",'x','n'])
     #transform data, self.voxel is created in the function
-    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+    voxels, initial_shape = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
 
     scaler = StandardScaler(with_std = False)
     x = scaler.fit_transform(voxels[1:,:])
@@ -126,7 +126,7 @@ def incPCA(array ,n_batches, x_min , x_max , y_min , y_max , z_min , z_max , pri
     """
     df = pd.DataFrame(columns = ["explained variance",'x','n'])
     #transform data, self.voxel is created in the function
-    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
+    voxels, initial_shape = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
 
     # Scale but NOT standardise features before PCA
     scaler = StandardScaler(with_std = with_std,with_mean = with_mean)
@@ -157,7 +157,7 @@ def t_SNE(array ,n_components, perplexity,n_iter, x_min , x_max , y_min , y_max 
     """
     df = pd.DataFrame(columns = ["explained variance",'x','n'])
     #transform data, self.voxel is created in the function
-    voxels = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max, n_components , mass_start , mass_stop)
+    voxels, initial_shape = data_transform(array , x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
 
     # Standardise the features before PCA
     x = StandardScaler().fit_transform(voxels[1:,:]) # do not scale first row as it contains masses
