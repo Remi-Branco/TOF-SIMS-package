@@ -61,7 +61,7 @@ def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , m
     """
     #get a slice of the data
     #we know that first channel (mass = 0 ) is just noise so remove it by adjusting mass_start = 1
-    voxels = array[x_min:x_max , y_min:y_max , z_min: z_max , mass_start : mass_stop]
+    voxels = array[z_min:z_max , y_min:y_max , x_min: x_max , mass_start : mass_stop]
 
     dim = voxels.shape[3] #step needs to be done here
     initial_shape = voxels.shape #for reshaping labels later on

@@ -9,13 +9,12 @@ from functools import lru_cache
 import plotly.graph_objects as go
 import plotly.express as px
 import os
-
-
-#from threading import Thread,RLock
+from sklearn.linear_model import LinearRegression
 
 #remember the . before thread_classes !
 from .multivariate_analysis import kPCA, incPCA, t_SNE
 from .multivariate_analysis import PCA_pd as PCA
+from .clustering import k_mean_voxels,filter_df_KMeans,plot_Clustered , k_mean_mini_batch_voxels
 
 
 cache_size = 3 #value for lru_cache
@@ -87,6 +86,30 @@ class TOF_SIMS :
         #self.principalDF = pd.DataFrame()
         #self.df_PCA = pd.DataFrame()
         print("TOF_SIMS imported successfully")
+
+
+    def fit_detection(self):
+        """
+        This function is only intended or development
+        to test relationship between peakdata and mass spectrum graph.
+
+        """
+        #sum peak data over all dimensions to have total of detection per mass
+        #self.pd_summed has dimension (250,)
+        self.pd_summed = self.peak_data.sum(0).sum(0).sum(0)
+        #get a copy of _sum_mass to simplify name
+        sm = self._sum_mass
+        #sum detected events between intervals [-0.5,0.5] for isotope 0, ...
+        self.sum_mass_summed = [sm[(sm['Mass Axis']> i+0.5) & (sm['Mass Axis']<i+1.5)].sum()[0] for i in range(-1,249,1) ]
+        # self.sum_mass_summed has shape (250,)
+        self.comp_sum = pd.DataFrame({'detect graph': self.sum_mass_summed,'peak_data':self.pd_summed})
+
+        X = np.array(self.comp_sum['detect graph'],dtype = 'float32').reshape(-1,1)
+        y = np.array(self.comp_sum['peak_data']).reshape(-1,1)
+
+        reg = LinearRegression().fit(X[1:], y[1:])
+        print("R-square:",reg.score(X, y))
+        print("y=ax+b","\n", "a: ",reg.coef_[0][0], "\n", "b: ",reg.intercept_[0])
 
     def plot_FIBImage(self, cmap = 'gray',figsize = (10,10)):
         """
@@ -648,6 +671,43 @@ class TOF_SIMS :
                          color='masses')
         fig.show()
         #PCA_3D(self.principalDf )
+
+
+    def KMeans(self, k = 2 , max_iter = 300 , x_min = 0 , x_max = 25 , y_min = 0 , y_max = 50 , z_min = 0 , z_max = 100 , mass_start = 1 , mass_stop = 250):
+        """
+        Perform KMeans on voxels
+        """
+        self.df_KMeans = k_mean_voxels(self.peak_data , k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
+
+
+    def KMeans_mini_batch(self,random_state = 1,n_init = 10, batch_size = 100, k = 2 , max_iter = 300 , x_min = 0 , x_max = 25 , y_min = 0 , y_max = 50 , z_min = 0 , z_max = 100 , mass_start = 1 , mass_stop = 250):
+        """
+        Perform KMeans on voxels
+        REMEMBER TO REMOVE RANDOM STATE
+        """
+        self.df_KMeans , self.df_abundance_per_cluster = k_mean_mini_batch_voxels(self.peak_data , random_state ,n_init , batch_size, k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
+
+
+    def plot_cluster(self , clusters_to_keep = [0,1],mode = 'markers',size=3,colorscale = 'Rainbow',opacity = 0.7 ):
+        #first filter dataframe to only keep relevant clusters
+        self.filtered_KMeans = filter_df_KMeans(self.df_KMeans , clusters_to_keep )
+        #3D plot voxels labelled by kmeans
+        plot_Clustered(self.filtered_KMeans,mode ,size,colorscale ,opacity )
+
+
+    def plot_cluster_composition(self,mass_min = 0, mass_max = 250,barmode='stack', cluster = 0 ):
+        """
+        """
+        #stack label column
+        df = self.df_abundance_per_cluster.stack(level = 'label')
+        df = df.reset_index()
+        df = df.rename(columns={"level_0": "mass" , 0: 'abundance','label' : "cluster"})
+        df.head()
+        fig = px.bar(df, color="cluster", y="abundance", x="mass", barmode="stack", color_discrete_map=True)
+        fig.show()
+
+
+
 
 
 
