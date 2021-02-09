@@ -6,3 +6,4 @@ build
 tests
 Pipfile
 Pipfile.lock
+/notes.txt
