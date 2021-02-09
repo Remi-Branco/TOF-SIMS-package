@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 import plotly.graph_objects as go
 import seaborn as sns
 import numpy as np
+from sklearn.metrics import silhouette_samples, silhouette_score
 
 
 #remember the . before thread_classes !
@@ -41,7 +42,6 @@ def k_mean_voxels(array , k ,max_iter , x_min , x_max , y_min , y_max , z_min , 
 def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_iter , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop):
     """
     Run KMeans clustering to cluster voxels in groups with similar isotope abundance
-
     """
     voxels, initial_shape = data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
     #copy vovels without first row which contains masses
@@ -72,8 +72,54 @@ def filter_df_KMeans(df,clusters_to_keep):
     return df
 
 
+
+def silouhette(array , random_state ,n_init , batch_size , max_iter , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop, range_clusters, plot, minibatch):
+
+    voxels, initial_shape = data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
+    #copy vovels without first row which contains masses
+    X = voxels[1:,:]
+    #here the dataset will be segmented for each voxel, not masses
+    #print(X.shape)
+    #scale and standardise
+    scaler = StandardScaler(with_mean = True, with_std = True) #must be standardised, not just scaled
+    X_transformed = scaler.fit_transform(X)
+    s = []
+    c = []
+    i = []
+    for n_clusters in range_clusters:
+
+        # Initialize the clusterer with n_clusters value and a random generator
+        # seed of 10 for reproducibility.
+        if minibatch :
+            #to run minibatch KMeans
+            clusterer = MiniBatchKMeans(n_clusters = n_clusters, max_iter = max_iter, batch_size = batch_size,random_state=random_state,n_init = n_init )
+        else:
+            clusterer = KMeans(n_clusters=n_clusters)  #must add more options here
+
+        cluster_labels = clusterer.fit_predict(X_transformed)
+
+        # The silhouette_score gives the average value for all the samples.
+        # This gives a perspective into the density and separation of the formed
+        # clusters
+        silhouette_avg = silhouette_score(X_transformed, cluster_labels)
+        #print("For n_clusters =", n_clusters, " the average silhouette_score is :", silhouette_avg, "inertia is : ", clusterer.inertia_)
+        s.append(silhouette_avg)
+        c.append(n_clusters)
+        i.append(clusterer.inertia_)
+        print("Cluster:",n_clusters," silouhette score:", silhouette_avg , " inertia:", clusterer.inertia_)
+        # Compute the silhouette scores for each sample
+        #sample_silhouette_values = silhouette_samples(X, cluster_labels)
+
+
+    df = pd.DataFrame({"cluster":c, "silouhette score":s, "inertia":i})
+    df.plot(x = "cluster", y = "silouhette score")
+    df.plot(x = "cluster", y = "inertia")
+    return df
+
+
+
 def plot_Clustered(df, mode, size,colorscale,opacity):
-    fig = go.Figure(data = [go.Scatter3d(x = df['x'],                                                     y = df['y'],
+    fig = go.Figure(data = [go.Scatter3d(x = df['x'],  y = df['y'],
                                                  z= df['z'],
                                                  mode = mode,
                                                  marker = dict(
@@ -100,10 +146,26 @@ def abundance_per_cluster(X, y_pred,mass_start, mass_stop):
     #e
     #transpose the dataframe to have masses as columns
     f = e.T
-
     return f
 
 
+
+def single_cluster_composition(df , n_mass  , cluster ):
+    """
+    Plot isotopic composition for a given cluster
+    """
+    #sorted per isotope abundance for group 0
+    values = df.iloc[:,cluster].sort_values(ascending=False)[:n_mass].values
+    #compute the total for rest of isotopes
+    sum_rest_values = df.iloc[:,cluster].sort_values(ascending=False)[n_mass:].values.sum()
+    values = np.append(values, sum_rest_values, axis=None)
+
+    k = df.iloc[:,cluster].sort_values(ascending=False)[:].values
+    #corresponding sorted masses/indices
+    labels = df.iloc[:,cluster].sort_values(ascending=False)[:n_mass].index
+    labels = np.append(labels, "rest" , axis = None)
+    fig = go.Figure(data=[go.Pie(labels=labels , title='{} most abundant isotopes in cluster #{}'.format(n_mass, cluster), values=values, pull=[0 if x != n_mass else 0.2 for x in range(n_mass+1)])])
+    fig.show()
 
 
 

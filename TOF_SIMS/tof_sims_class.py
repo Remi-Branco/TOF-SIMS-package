@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 #remember the . before thread_classes !
 from .multivariate_analysis import kPCA, incPCA, t_SNE
 from .multivariate_analysis import PCA_pd as PCA
-from .clustering import k_mean_voxels,filter_df_KMeans,plot_Clustered , k_mean_mini_batch_voxels
+from .clustering import k_mean_voxels,filter_df_KMeans,plot_Clustered , k_mean_mini_batch_voxels,single_cluster_composition, silouhette
 
 
 cache_size = 3 #value for lru_cache
@@ -430,8 +430,8 @@ class TOF_SIMS :
             sns.despine(fig, left=True, bottom=True)
             splot = sns.lineplot(x="Mass Axis", y="Sum Spectrum", sizes=(1, 8),
                                  linewidth=1, data= filtered_sum_mass  , ax=ax).set_title(title)
-            ax.set_xlabel('Mass')
-            ax.set_ylabel('Number of events')
+            ax.set_xlabel('m/z')
+            ax.set_ylabel('Abundance')
             ax.set_title('Mass spectrum')
             plt.close()
             return fig
@@ -649,7 +649,25 @@ class TOF_SIMS :
         """
         Function ploting explained variance
         """
-        sns.lineplot(data = self.df_PCA, x = 'n', y = 'explained variance')
+        #sns.lineplot(data = self.df_PCA, x = 'n', y = 'explained variance')
+
+        #fig = px.line(self.df_PCA, x="n", y="explained variance", title='Scree plot')
+        #fig.show()
+
+        x = self.df_PCA['n']
+        y = self.df_PCA['explained variance']
+        y_cum = self.df_PCA['explained variance'].cumsum()
+
+        # Create traces
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=x, y=y,
+                            mode='lines+markers',
+                            name='explained variance'))
+        fig.add_trace(go.Scatter(x=x, y=y_cum,
+                            mode='lines+markers',
+                            name='cummulated variance'))
+
+        fig.show()
 
 
     def  pca_2D(self,component_x = 1 , component_y = 2):
@@ -659,7 +677,9 @@ class TOF_SIMS :
         """
         component_x = 'principal component ' + str(component_x)
         component_y = 'principal component ' + str(component_y)
-        fig = px.scatter(x=self.principalDF[component_x] , y=self.principalDF[component_y] , color = self.principalDF['masses'] )
+        #fig = px.scatter(x=self.principalDF[component_x] , y=self.principalDF[component_y] , color = self.principalDF['masses'] )
+
+        fig = px.scatter(x=self.principalDF[component_x] , y=self.principalDF[component_y] , color = self.principalDF['masses'], labels={"x": component_x, "y": component_y, "color": "mass"} )
         fig.show()
 
 
@@ -707,6 +727,26 @@ class TOF_SIMS :
         fig.show()
 
 
+    def plot_cluster_composition_multigraph(self,mass_min = 0, mass_max = 250,barmode='stack', cluster = 0 ):
+        """
+        """
+        #stack label column
+        df = self.df_abundance_per_cluster.stack(level = 'label')
+        df = df.reset_index()
+        df = df.rename(columns={"level_0": "mass" , 0: 'abundance','label' : "cluster"})
+        df.head()
+        fig = px.scatter(df, x="mass", y="abundance", facet_col="cluster")
+        fig.update_yaxes(nticks=20)
+        fig.show()
+
+
+    def plot_cluster_pie_chart(self,n_mass = 5 , cluster = 0):
+        single_cluster_composition(self.df_abundance_per_cluster , n_mass , cluster )
+
+
+
+    def silouhette_KMeans(self,random_state = 1,n_init = 10, batch_size = 100,  max_iter = 300 , x_min = 0 , x_max = 25 , y_min = 0 , y_max = 50 , z_min = 0 , z_max = 100 , mass_start = 1 , mass_stop = 250, range_clusters = [2,3,4], plot = False, minibatch = True):
+        self.silouhette_score = silouhette(self.peak_data , random_state ,n_init , batch_size , max_iter , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop, range_clusters, plot, minibatch)
 
 
 
