@@ -1,5 +1,3 @@
-During install, if some packages are missing, note which ones !
-
 1-open windows terminal and change directory to TOF-SIMS-package folder
   chdir "Documents\TOF-SIMS package"
 
@@ -22,5 +20,5 @@ Since you already are inside TOF-SIMS package folder simply type
   pip install TOF-SIMS
 
 
-6-to deactivate the venv (don't need it but just in case..)
+6-to deactivate the venv
   deactivate
