@@ -7,3 +7,4 @@ tests
 Pipfile
 Pipfile.lock
 /notes.txt
+dist
