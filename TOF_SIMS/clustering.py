@@ -9,8 +9,6 @@ import numpy as np
 from sklearn.metrics import silhouette_samples, silhouette_score
 
 
-#remember the . before thread_classes !
-#not working curently
 from .multivariate_analysis import data_transform
 
 
@@ -24,7 +22,6 @@ def k_mean_voxels(array , k ,max_iter , x_min , x_max , y_min , y_max , z_min , 
     #copy vovels without first row which contains masses
     X = voxels[1:,:]
     #here the dataset will be segmented for each voxel, not masses
-    print(X.shape)
     #scale and standardise
     scaler = StandardScaler(with_mean = True, with_std = True) #must be standardised, not just scaled
     X_transformed = scaler.fit_transform(X)
@@ -47,7 +44,6 @@ def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_
     #copy vovels without first row which contains masses
     X = voxels[1:,:]
     #here the dataset will be segmented for each voxel, not masses
-    #print(X.shape)
     #scale and standardise
     scaler = StandardScaler(with_mean = True, with_std = True) #must be standardised, not just scaled
     X_transformed = scaler.fit_transform(X)
@@ -102,13 +98,11 @@ def silouhette(array , random_state ,n_init , batch_size , max_iter , x_min , x_
         # This gives a perspective into the density and separation of the formed
         # clusters
         silhouette_avg = silhouette_score(X_transformed, cluster_labels)
-        #print("For n_clusters =", n_clusters, " the average silhouette_score is :", silhouette_avg, "inertia is : ", clusterer.inertia_)
         s.append(silhouette_avg)
         c.append(n_clusters)
         i.append(clusterer.inertia_)
         print("Cluster:",n_clusters," silouhette score:", silhouette_avg , " inertia:", clusterer.inertia_)
         # Compute the silhouette scores for each sample
-        #sample_silhouette_values = silhouette_samples(X, cluster_labels)
 
 
     df = pd.DataFrame({"cluster":c, "silouhette score":s, "inertia":i})
@@ -140,10 +134,8 @@ def abundance_per_cluster(X, y_pred,mass_start, mass_stop):
     df2.head()
     #append the labels
     df2['label'] = y_pred
-    #df2
     #compute average abundance of each isotope per group
     e = df2.groupby('label').mean()
-    #e
     #transpose the dataframe to have masses as columns
     f = e.T
     return f

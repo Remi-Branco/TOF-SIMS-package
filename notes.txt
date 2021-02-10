@@ -22,3 +22,14 @@ Since you already are inside TOF-SIMS package folder simply type
 
 6-to deactivate the venv
   deactivate
+
+
+====
+
+to push new version to PyPI
+
+1 - build package
+  go inside virtualenv
+    python -m build
+  push to PyPI
+    python -m twine upload --repository pypi dist/*
