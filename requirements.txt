@@ -7,4 +7,4 @@ scipy==1.6.0
 seaborn==0.11.1
 plotly
 sklearn
-nbconvert[webpdf]
+nbconvert
