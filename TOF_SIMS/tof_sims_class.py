@@ -54,7 +54,7 @@ class TOF_SIMS :
 
         self.colormap = "viridis"
         #open hdf5 file
-        print("Cache size = ",cache_size)
+        #print("Cache size = ",cache_size)
         f = h5py.File(filename,'r')
         self._file_name = filename.split("/")[-1]
         print("Opening {}".format(self._file_name))
@@ -298,7 +298,6 @@ class TOF_SIMS :
         transposes and transforms the array
         """
         dim = TOF_SIMS.dim
-        #print("dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]]",dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]])
         new_array = np.transpose(fourD_array,axes=(dim[mode[0]],dim[mode[1]],dim[mode[2]],dim[mode[3]] ))
         return np.sum(new_array,3) #sum over the last axis
 
@@ -314,8 +313,6 @@ class TOF_SIMS :
 
         n_plotx = n_ploty = ceil(sqrt( proj.shape[2]))
 
-        #f = plt.figure(figsize = (10,8), dpi=100) ##added
-
         fig, axs = plt.subplots(n_plotx , n_ploty, figsize = figsize)
         index = 0
         for i in range ( ceil(sqrt( proj.shape[2])) ):
@@ -327,7 +324,7 @@ class TOF_SIMS :
                 except:
                     pass
                 index +=1
-        plt.tight_layout() ## =====
+        plt.tight_layout()
         plt.show()
         #return fig object to allow user to save it using .savefig() method from matplotlib
         #curently not working
@@ -395,8 +392,6 @@ class TOF_SIMS :
         fig = plt.figure(figsize=figsize)
         plt.imshow(projection,cmap=cmap)
         plt.colorbar()
-        #plt.show()
-        #plt.close() to prevent jupyter from displaying twice then return fig to be able to save it
         plt.close()
         return fig
 
@@ -408,7 +403,6 @@ class TOF_SIMS :
       """
       flag = True
       for isotope,list_value in isotopes.items():
-          #value[0] :  list_value[0] : mass and  list_value[1] : color map
           print(isotope,list_value[0],list_value[1])
           proj = self.max_proj_isotope(self.peak_data,"z",list_value[0])
           if flag:
@@ -424,8 +418,6 @@ class TOF_SIMS :
     @lru_cache(maxsize = cache_size)
     def filter_sum_spectrum_vs_mass_axis(self,mass_min,mass_max,sum_spectrum_min,sum_spectrum_max):
         df = self._sum_mass
-        #print(df.head())
-        #print(df.columns.values)
         df = df[df["Mass Axis"] > mass_min]
         df = df[df["Mass Axis"] < mass_max]
         df = df[df['Sum Spectrum'] > sum_spectrum_min]
@@ -451,7 +443,6 @@ class TOF_SIMS :
         interactive : bool
             make the graph interactive
         """
-        #filter dataset, use lru_cache to speed up
         filtered_sum_mass = self.filter_sum_spectrum_vs_mass_axis(mass_min,mass_max,sum_spectrum_min,sum_spectrum_max)
 
         if interactive:
@@ -481,21 +472,17 @@ class TOF_SIMS :
         z = []
         v = []
         isotope_mass = []
-        #print(mass)
         for mt in mass_threshold:
             print("mass",mt[0],"threshold",mt[1])
             for i in range(four_D_array.shape[0]):
                 for j in range(four_D_array.shape[1]):
-                    #print("J",j)
                     for k in range(four_D_array.shape[2]):
                         if (four_D_array[i,j,k,mt[0]] >= mt[1]):
-                            #print(i,j,k,four_D_array[i,j,k,mass])
                             x.append(j)
                             y.append(k)
                             z.append(i)
                             v.append(four_D_array[i,j,k,mt[0] ] )
                             isotope_mass.append(mt[0])
-
         #convert to dataframe
         df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v,'mass':isotope_mass})
         print(df.shape[0],"points")
@@ -589,8 +576,6 @@ class TOF_SIMS :
         ax.set(xlabel= projection_axis, ylabel='sum over '+ dims,
               title='abundance over ' + projection_axis + '-axis')
         ax.grid()
-        #fig.savefig("test.png")
-        #plt.show()
         plt.close()
         return fig
 
@@ -658,8 +643,8 @@ class TOF_SIMS :
             maximal mass
         principal_components : int
             number of principal components for PCA
-
         """
+        #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html?highlight=pca#sklearn.decomposition.PCA
         self.principalDF, self.df_PCA, self.voxels = PCA(self.peak_data, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop, with_std = False , with_mean = True )
 
 
@@ -695,6 +680,7 @@ class TOF_SIMS :
             Kernel coefficient for rbf, poly and sigmoid kernels.
             Ignored by other kernels. If gamma is None, then it is set to 1/n_features.
         """
+        #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.KernelPCA.html?highlight=kpca
         self.principalDF, self.df_PCA, self.voxels = kPCA(self.peak_data,kernel,gamma, x_min,x_max , y_min,y_max,z_min, z_max, principal_components , mass_start , mass_stop)
 
 
@@ -731,6 +717,7 @@ class TOF_SIMS :
             set to 5 * n_features, to provide a balance between approximation
              accuracy and memory consumption.
         """
+        #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.IncrementalPCA.html?highlight=ipca
         self.principalDF, self.df_PCA, self.voxels = incPCA(self.peak_data , n_batches , x_min , x_max , y_min , y_max , z_min , z_max , principal_components , mass_start , mass_stop , with_std = False , with_mean = True)
 
 
@@ -825,6 +812,7 @@ class TOF_SIMS :
         mass_stop : int
             maximal mass
         """
+        #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html?highlight=tsne#sklearn.manifold.TSNE
         self.principalDF, self.df_PCA, self.voxels = t_SNE(self.peak_data , n_components, perplexity,n_iter,early_exaggeration,n_iter_without_progress,min_grad_norm ,metric ,init ,verbose ,random_state ,method , x_min , x_max , y_min , y_max , z_min , z_max  , mass_start , mass_stop , learning_rate)
 
 
@@ -906,6 +894,7 @@ class TOF_SIMS :
         mass_stop : int
             maximal mass
         """
+        # comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html?highlight=kmeans#sklearn.cluster.KMeans
         self.df_KMeans = k_mean_voxels(self.peak_data , k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
 
 
@@ -940,6 +929,7 @@ class TOF_SIMS :
         mass_stop : int
             maximal mass
         """
+        #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html#sklearn.cluster.MiniBatchKMeans
         self.df_KMeans , self.df_abundance_per_cluster = k_mean_mini_batch_voxels(self.peak_data , random_state ,n_init , batch_size, k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
 
 

@@ -8,7 +8,6 @@ import seaborn as sns
 import numpy as np
 from sklearn.metrics import silhouette_samples, silhouette_score
 
-
 from .multivariate_analysis import data_transform
 
 
@@ -61,7 +60,6 @@ def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_
 def filter_df_KMeans(df,clusters_to_keep):
     #filter using a query, this query allows multiple groups to be filtered dynamically
     query =  ' | '.join(["label=={}".format(k) for k in clusters_to_keep])
-    #print(query)
     print("Cluster(s)", ", ".join(["{}".format(k) for k in clusters_to_keep]), "kept")
     #filter df1 based on query
     df = df.query(query)
@@ -171,7 +169,6 @@ def transform_data(array):
         for j in range(array.shape[1]):
             #print("J",j)
             for k in range(array.shape[2]):
-                #print(i,j,k,four_D_array[i,j,k,mass])
                 x.append(k)
                 y.append(j)
                 z.append(i)

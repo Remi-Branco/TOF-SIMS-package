@@ -55,7 +55,6 @@ def data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , m
     voxels = voxels.reshape(-1,dim)
     #append masses to top of array
     m = np.array(([i for i in range(mass_start , mass_stop , 1 )],)) #this is a one row array
-    #print(m.shape,"\n",m,"\n")
     #concatenate it to top of voxels array (on top of it)
     #concatenate masses array (1,2,3,4..) as first column and
     voxels = np.concatenate((m,voxels),axis =0)
