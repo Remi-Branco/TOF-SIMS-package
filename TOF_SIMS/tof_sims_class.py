@@ -541,7 +541,17 @@ class TOF_SIMS :
                                                  color = self.arr_filtered[:,4],
                                                  colorscale = colorscale,
                                                  opacity = opacity))])
-        fig.update_layout(margin =dict(l=0, r=0, b=0, t=0))
+
+        fig.update_layout(
+            scene = dict(
+                xaxis = dict(nticks=4, range=[self.arr_filtered[:,0].min(),self.arr_filtered[:,0].max()],),
+                yaxis = dict(nticks=4, range=[self.arr_filtered[:,1].min(),self.arr_filtered[:,1].max()],),
+                zaxis = dict(nticks=4, range=[self.arr_filtered[:,2].max(),self.arr_filtered[:,2].min()],),),
+                margin=dict(r=20, l=10, b=10, t=10)
+                )
+        fig.update_layout(scene_aspectmode='data')
+
+        #fig.update_layout(margin =dict(l=0, r=0, b=0, t=0))
         fig.show()
 
     '''

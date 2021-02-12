@@ -113,6 +113,9 @@ def silouhette(array , random_state ,n_init , batch_size , max_iter , x_min , x_
 
 
 def plot_Clustered(df, mode, size,colorscale,opacity):
+
+
+
     fig = go.Figure(data = [go.Scatter3d(x = df['x'],  y = df['y'],
                                                  z= df['z'],
                                                  mode = mode,
@@ -120,9 +123,18 @@ def plot_Clustered(df, mode, size,colorscale,opacity):
                                                      size = size ,
                                                      color = df['label'],
                                                      colorscale = colorscale,
-                                                     opacity = opacity))])
+                                                     opacity = opacity))]  )
 
-    fig.update_layout(margin =dict(l=0, r=0, b=0, t=0))
+
+    fig.update_layout(
+        scene = dict(
+            xaxis = dict(nticks=4, range=[df['x'].min(),df['x'].max()],),
+            yaxis = dict(nticks=4, range=[df['y'].min(),df['y'].max()],),
+            zaxis = dict(nticks=4, range=[df['z'].max(),df['z'].min()],),),
+            margin=dict(r=20, l=10, b=10, t=10)
+            )
+    fig.update_layout(scene_aspectmode='data')
+
     fig.show()
 
 
