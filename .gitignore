@@ -8,5 +8,3 @@ Pipfile
 Pipfile.lock
 /notes.txt
 dist
-MANIFEST.in
-setup.py
