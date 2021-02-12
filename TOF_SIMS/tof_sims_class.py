@@ -108,6 +108,7 @@ class TOF_SIMS :
         print("y=ax+b","\n", "a: ",reg.coef_[0][0], "\n", "b: ",reg.intercept_[0])
 
 
+
     def plot_FIBImage(self, cmap = 'gray',figsize = (10,10)):
         """
         Method displaying FIBImages
@@ -461,73 +462,83 @@ class TOF_SIMS :
             return fig
 
 
+
     def convert_to_flat(self,four_D_array, mass_threshold ):
         """
         Convert 3D numpy array to 4 columns
         mass_threshold is a tuple (mass,threshold)
         """
-        #create empty lists
-        x = []
-        y = []
-        z = []
-        v = []
-        isotope_mass = []
+        #numba ready
+        #generate coordinates using mgrid
+        Z,Y,X = np.mgrid[0:four_D_array.shape[TOF_SIMS.dim['z']],0:four_D_array.shape[TOF_SIMS.dim['y']],0:four_D_array.shape[TOF_SIMS.dim['x']]]
+        X = X.flatten()
+        Y = Y.flatten()
+        Z = Z.flatten()
+
+        self.arr_filtered = np.empty([0, 5])
         for mt in mass_threshold:
             print("mass",mt[0],"threshold",mt[1])
-            for i in range(four_D_array.shape[0]):
-                for j in range(four_D_array.shape[1]):
-                    for k in range(four_D_array.shape[2]):
-                        if (four_D_array[i,j,k,mt[0]] >= mt[1]):
-                            x.append(j)
-                            y.append(k)
-                            z.append(i)
-                            v.append(four_D_array[i,j,k,mt[0] ] )
-                            isotope_mass.append(mt[0])
-        #convert to dataframe
-        df = pd.DataFrame({'x': x, 'y': y,'z': z,'v':v,'mass':isotope_mass})
-        print(df.shape[0],"points")
-        print(df.groupby('mass').count())
-        return df
+
+            #flatten mass array
+            pd_flat = four_D_array[:,:,:,mt[0]].flatten()
+            #create array of masses
+            M = np.full(pd_flat.shape, mt[0])
+            #stack coordinates ararys with peak_data flat
+            flat_arr = np.stack([X,Y,Z,pd_flat,M],axis = 1)
+            #print(flat_arr.shape)
+            #create filter array, false if below threshold, true otherwise
+            filter_arr = flat_arr[:,3] >= mt[1]
+            #print(filter_arr.shape)
+            #remove false entries
+            filtered_arr = flat_arr[filter_arr]
+            #print(filtered_arr.shape)
+            self.arr_filtered = np.concatenate((self.arr_filtered, filtered_arr), axis=0)
+
 
 
     def three_D_plot_isotope(self, mass_threshold = ((27 , 0.9 )), figsize_x=15 , figsize_y=12 ,cmap = "viridis",size = 2,depthshade=True, opacity = 0.5):
         """
         Create a 3D plot using peakData.
         """
-        #flaten array
-        df = self.convert_to_flat( self.peak_data , mass_threshold)
+        #flaten and converts to numpy array (stored as self.arr_filtered)
+        self.convert_to_flat( self.peak_data , mass_threshold)
+        #create dataframe for plotting
+        #df = self.create_flat_df()
         #plot
-        self.three_D_plot(df,figsize_x , figsize_y ,cmap,size,depthshade, opacity=opacity)
+        self.three_D_plot(figsize_x , figsize_y ,cmap,size,depthshade, opacity=opacity)
 
 
-    def three_D_plot(self,df, figsize_x , figsize_y, cmap = "viridis",size = 2 ,depthshade=True  ,opacity = 0.7):
+    def three_D_plot(self, figsize_x , figsize_y, cmap = "viridis",size = 2 ,depthshade=True  ,opacity = 0.7):
         """
         Non-interactive plots using matplotlib, fast
         """
         fig = plt.figure(figsize=(figsize_x, figsize_y))
         ax = fig.add_subplot(111, projection="3d")
         #colormap = np.linspace(df['v'].min(),df['v'].max())
-        ax.scatter(df['x'], df['y'], df['z'], c = df['mass'] , alpha=opacity, cmap = cmap, s = size, depthshade=depthshade  )
+        ax.scatter(self.arr_filtered[:,0], self.arr_filtered[:,1], self.arr_filtered[:,2], c = self.arr_filtered[:,4] , alpha=opacity, cmap = cmap, s = size, depthshade=depthshade  )
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
         plt.show()
 
 
+
     def plot_3D_scatter_plotly (self, mass_threshold = ((27 , 1.2 )) , size = 1 , opacity = 0.7,colorscale = 'Viridis',mode = 'markers'):
         """
         Interactive plot using plotly
         """
-        #flaten array
-        df = self.convert_to_flat(self.peak_data, mass_threshold)
+
+        #flaten and converts to numpy array (stored as self.arr_filtered)
+        self.convert_to_flat( self.peak_data , mass_threshold)
+        #no need for df
         #plot
-        fig = go.Figure(data = [go.Scatter3d(x = df['x'],
-                                             y = df['y'],
-                                             z= df['z'],
+        fig = go.Figure(data = [go.Scatter3d(x = self.arr_filtered[:,0],
+                                             y = self.arr_filtered[:,1],
+                                             z= self.arr_filtered[:,2],
                                              mode = mode,
                                              marker = dict(
                                                  size=size ,
-                                                 color = df['mass'],
+                                                 color = self.arr_filtered[:,4],
                                                  colorscale = colorscale,
                                                  opacity = opacity))])
         fig.update_layout(margin =dict(l=0, r=0, b=0, t=0))

@@ -52,6 +52,8 @@ def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_
     y_pred = kmeans.fit_predict(X_transformed)
     #reshape labels into 4D dataset with 4th dim as label
     peak_data_lbld = y_pred.reshape(initial_shape[0],initial_shape[1],initial_shape[2],1)
+    #print(peak_data_lbld.shape)
+    #print(peak_data_lbld[:,0])
     df_labelled = transform_data(peak_data_lbld)
     df_abundance_per_cluster = abundance_per_cluster(X,y_pred, mass_start, mass_stop )
     return df_labelled, df_abundance_per_cluster
@@ -135,8 +137,8 @@ def abundance_per_cluster(X, y_pred,mass_start, mass_stop):
     #compute average abundance of each isotope per group
     e = df2.groupby('label').mean()
     #transpose the dataframe to have masses as columns
-    f = e.T
-    return f
+    e = e.T
+    return e
 
 
 
@@ -160,21 +162,15 @@ def single_cluster_composition(df , n_mass  , cluster ):
 
 
 def transform_data(array):
-    x = []
-    y = []
-    z = []
-    l = []
+    Z , Y , X = np.mgrid[0:array.shape[0],0:array.shape[1],0:array.shape[2]]
+    X = X.flatten()
+    Y = Y.flatten()
+    Z = Z.flatten()
+    label = array[:,:,:,0].flatten()
 
-    for i in range(array.shape[0]):
-        for j in range(array.shape[1]):
-            #print("J",j)
-            for k in range(array.shape[2]):
-                x.append(k)
-                y.append(j)
-                z.append(i)
-                l.append(array[i,j,k,0] )
-    df = pd.DataFrame({'x': x, 'y': y,'z': z,'label':l})
+    df = pd.DataFrame({'x': X, 'y': Y,'z': Z,'label':label})
     print("There are ")
     print(df.shape[0]," voxels")
     print(df.groupby('label').count())
+
     return df
