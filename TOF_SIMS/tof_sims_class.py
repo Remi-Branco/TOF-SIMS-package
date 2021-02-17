@@ -10,6 +10,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 import os
 from sklearn.linear_model import LinearRegression
+from tabulate import tabulate
+from collections import defaultdict
 
 #remember the . before thread_classes !
 from .multivariate_analysis import kPCA, incPCA, t_SNE
@@ -56,6 +58,7 @@ class TOF_SIMS :
         #open hdf5 file
         #print("Cache size = ",cache_size)
         f = h5py.File(filename,'r')
+        self.f = f
         self._file_name = filename.split("/")[-1]
         print("Opening {}".format(self._file_name))
         self.file_path = filename[0:-len(filename.split("/")[-1])] #remove characters corresponding to filename
@@ -83,6 +86,80 @@ class TOF_SIMS :
         #increment dataset_opened each time a new dataset is opened (to limit memory usage at some point; not implemented)
         TOF_SIMS.datasets_opened +=1
         print("TOF-SIMS file imported successfully")
+
+    def report(self,formatting = 'rst', display = True):
+        """
+        Print out machine parameters
+
+        formatting : str,default=rst {"plain","simple","github","grid","fancy_grid","pipe","orgtbl","jira","presto","pretty","psql","rst","mediawiki","moinmoin","youtrack","html","latex","latex_raw","latex_booktabs","textile"}
+            table formatting, parameters same as tabulate package
+        display : bool,default=True
+            Display the table
+        """
+
+        self.parameters = {} #class dictionnary containing every machine parameters
+        for key, value in self.f.attrs.items():
+            #clean up the value
+            if type(value) is np.bytes_:
+                value =  value.decode('UTF-8')
+            if type(value) is np.ndarray:
+                value = value[0].item()
+            self.parameters[key] = value
+
+        for key, value in self.f['FIBParams'].attrs.items():
+            #clean up the value
+            if type(value) is np.bytes_:
+                value =  value.decode('UTF-8')
+            if type(value) is np.ndarray:
+                value = value[0].item()
+            self.parameters[key] = value
+
+        print('TOF SIMS REPORT\n')
+        print('1. Method:\n')
+        print('Experiment Date:', self.parameters['HDF5 File Creation Time'], '\n')
+        print('Ion Mode:', self.parameters['IonMode'], '\n')
+        print('Current:', self.parameters['Current'], 'A\n')
+        print('Scan Speed:', self.parameters['ScanSpeed'], 'um/s\n') #check this unit
+        print('Field Of View:', self.parameters['ViewField'], 'um\n')
+        print('Voltage:', self.parameters['Voltage'], 'V\n')
+        print('2. Results:\n')
+        print('Apendix:\n')
+        print('File Attributes\n')
+
+        #process the self.parameters['Configuration File Contents']
+        self.parameters['Configuration File Contents'] = self.configParamFile_Content(self.parameters['Configuration File Contents'])
+
+        if display:
+            p = self.parameters.copy()
+            del p['Configuration File Contents']
+            df = pd.DataFrame(data = {'Parameter name':p.keys(), 'Value': p.values()})
+            self.pprint_df(df,formatting)
+
+
+
+    def pprint_df(self,df,formatting):
+        print(tabulate(df, headers='keys', tablefmt=formatting, showindex=False))
+
+
+    def configParamFile_Content(self, data):
+        #transform param['Configuration File Contents'] as dictionnary
+        result = defaultdict(dict)
+        current_key = None
+        sub_key = None
+
+        for item in data.split("\n"):
+            # If item cannot be split by "=" then it is a key
+            # Save it as current key and move on
+            if len(item.split("="))== 1 :
+                current_key = item.replace("[","").replace("]","")
+                continue
+
+            # Otherwise, add the value to results
+            #create sub key
+            sub_key = item.split("=")[0]
+            #add to dictionnary
+            result[current_key][sub_key] = item.split("=")[1]
+        return dict(result)
 
 
     def fit_detection(self):

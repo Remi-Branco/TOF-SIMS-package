@@ -8,3 +8,5 @@ seaborn==0.11.1
 plotly
 sklearn
 nbconvert
+tabulate
+collections

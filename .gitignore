@@ -8,3 +8,4 @@ Pipfile
 Pipfile.lock
 /notes.txt
 dist
+.ipynb_checkpoints
