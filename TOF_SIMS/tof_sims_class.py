@@ -85,6 +85,7 @@ class TOF_SIMS :
 
         #increment dataset_opened each time a new dataset is opened (to limit memory usage at some point; not implemented)
         TOF_SIMS.datasets_opened +=1
+        self.report(display=False)
         print("TOF-SIMS file imported successfully")
 
     def report(self,formatting = 'rst', display = True):
@@ -186,7 +187,7 @@ class TOF_SIMS :
 
 
 
-    def plot_FIBImage(self, cmap = 'gray',figsize = (10,10)):
+    def plot_FIBImage(self, cmap = 'Reds',figsize = (10,10)):
         """
         Method displaying FIBImages
 
@@ -195,10 +196,15 @@ class TOF_SIMS :
         figsize : tuple
             figure size (pyplot)
         """
+
         fig = plt.figure(figsize = figsize)
-        plt.imshow(self.fibimage,cmap=cmap)
-        plt.colorbar()
-        #plt.show()
+        scale = float(self.parameters['Configuration File Contents']['TOFParameter']['Ch1FullScale'])
+        plt.imshow(self.fibimage, cmap=cmap , extent=[0, scale, 0, scale])
+        cbar = plt.colorbar()
+        cbar.set_label('Secondary electron induced by Xe ions')
+        plt.axis()
+        plt.xlabel('x axis (um)')
+        plt.ylabel('y axis (um)')
         #plt.close() is to prevent jupyter from displaying image when saving it
         # then return figure to be able to save it
         plt.close()
