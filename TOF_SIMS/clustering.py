@@ -14,7 +14,7 @@ from .multivariate_analysis import data_transform
 
 def k_mean_voxels(array , k ,max_iter , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop):
     """
-    Run KMeans clustering to cluster voxels in groups with similar isotope abundance
+    Run KMeans clustering to cluster voxels in groups with similar isotope intensity
 
     """
     voxels, initial_shape = data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
@@ -37,7 +37,7 @@ def k_mean_voxels(array , k ,max_iter , x_min , x_max , y_min , y_max , z_min , 
 
 def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_iter , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop):
     """
-    Run KMeans clustering to cluster voxels in groups with similar isotope abundance
+    Run KMeans clustering to cluster voxels in groups with similar isotope intensity
     """
     voxels, initial_shape = data_transform(array,x_min,x_max , y_min,y_max,z_min, z_max , mass_start , mass_stop)
     #copy vovels without first row which contains masses
@@ -55,8 +55,8 @@ def k_mean_mini_batch_voxels(array , random_state ,n_init , batch_size , k ,max_
     #print(peak_data_lbld.shape)
     #print(peak_data_lbld[:,0])
     df_labelled = transform_data(peak_data_lbld)
-    df_abundance_per_cluster = abundance_per_cluster(X,y_pred, mass_start, mass_stop )
-    return df_labelled, df_abundance_per_cluster
+    df_intensity_per_cluster = intensity_per_cluster(X,y_pred, mass_start, mass_stop )
+    return df_labelled, df_intensity_per_cluster
 
 
 def filter_df_KMeans(df,clusters_to_keep):
@@ -138,7 +138,7 @@ def plot_Clustered(df, mode, size,colorscale,opacity):
     fig.show()
 
 
-def abundance_per_cluster(X, y_pred,mass_start, mass_stop):
+def intensity_per_cluster(X, y_pred,mass_start, mass_stop):
 
     column = [str(m) for m in range(mass_start, mass_stop,1)]
     #print(column)
@@ -146,7 +146,7 @@ def abundance_per_cluster(X, y_pred,mass_start, mass_stop):
     df2.head()
     #append the labels
     df2['label'] = y_pred
-    #compute average abundance of each isotope per group
+    #compute average intensity of each isotope per group
     e = df2.groupby('label').mean()
     #transpose the dataframe to have masses as columns
     e = e.T
@@ -158,7 +158,7 @@ def single_cluster_composition(df , n_mass  , cluster ):
     """
     Plot isotopic composition for a given cluster
     """
-    #sorted per isotope abundance for group 0
+    #sorted per isotope intensity for group 0
     values = df.iloc[:,cluster].sort_values(ascending=False)[:n_mass].values
     #compute the total for rest of isotopes
     sum_rest_values = df.iloc[:,cluster].sort_values(ascending=False)[n_mass:].values.sum()

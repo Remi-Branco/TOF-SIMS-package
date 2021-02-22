@@ -115,6 +115,7 @@ class TOF_SIMS :
                 value = value[0].item()
             self.parameters[key] = value
 
+
         print('TOF SIMS REPORT\n')
         print('1. Method:\n')
         print('Experiment Date:', self.parameters['HDF5 File Creation Time'], '\n')
@@ -123,9 +124,10 @@ class TOF_SIMS :
         print('Scan Speed:', self.parameters['ScanSpeed'], 'um/s\n') #check this unit
         print('Field Of View:', self.parameters['ViewField'], 'um\n')
         print('Voltage:', self.parameters['Voltage'], 'V\n')
-        print('2. Results:\n')
-        print('Apendix:\n')
-        print('File Attributes\n')
+        if display:
+            print('2. Results:\n')
+            print('Apendix:\n')
+            print('File Attributes\n')
 
         #process the self.parameters['Configuration File Contents']
         self.parameters['Configuration File Contents'] = self.configParamFile_Content(self.parameters['Configuration File Contents'])
@@ -519,9 +521,9 @@ class TOF_SIMS :
         mass_max : int
             maximal mass to display
         sum_spectrum_min : int
-            minimal intensity/abundance to display
+            minimal intensity to display
         sum_spectrum_max : int
-            maximal intensity/abundance to display
+            maximal intensity to display
         figsize : tuple
             figure size (pyplot) (if interactive == True)
         interactive : bool
@@ -647,16 +649,16 @@ class TOF_SIMS :
 
 
     @lru_cache(maxsize = cache_size)
-    def sum_abundance(self,a,b):
+    def sum_intensity(self,a,b):
         """
-        used by plot_abundance
+        used by plot_intensity
         """
         return np.sum(self._peak_data,axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
 
 
-    def plot_abundance(self, projection_axis = "z",mass = [1]):
+    def plot_intensity(self, projection_axis = "z",mass = [1]):
         """
-        Plots the sum of abundance per frame given an axis (x,y or z)
+        Plots the sum of intensity per frame given an axis (x,y or z)
         axis : str
           x,y or z
         mass : list of ints
@@ -666,7 +668,7 @@ class TOF_SIMS :
         mass = set(mass) #remove any duplicates in mass
 
         dims = "xyz".replace(projection_axis,"") #remve the axis to parse as we'll sum over the other two
-        sum = self.sum_abundance(dims[0],dims[1])
+        sum = self.sum_intensity(dims[0],dims[1])
 
         # Data for plotting
         x = np.arange(0.0, sum.shape[0], 1) #can be changed later to take into account real thickness/dimension
@@ -678,7 +680,7 @@ class TOF_SIMS :
             #ax.legend()
 
         ax.set(xlabel= projection_axis, ylabel='sum over '+ dims,
-              title='abundance over ' + projection_axis + '-axis')
+              title='intensity over ' + projection_axis + '-axis')
         ax.grid()
         plt.close()
         return fig
@@ -1034,7 +1036,7 @@ class TOF_SIMS :
             maximal mass
         """
         #comment adapted from https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html#sklearn.cluster.MiniBatchKMeans
-        self.df_KMeans , self.df_abundance_per_cluster = k_mean_mini_batch_voxels(self.peak_data , random_state ,n_init , batch_size, k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
+        self.df_KMeans , self.df_intensity_per_cluster = k_mean_mini_batch_voxels(self.peak_data , random_state ,n_init , batch_size, k , max_iter  , x_min , x_max , y_min , y_max , z_min , z_max , mass_start , mass_stop)
 
 
     def plot_cluster(self , clusters_to_keep = [0,1],mode = 'markers',size=3,colorscale = 'Rainbow',opacity = 0.7 ):
@@ -1048,11 +1050,11 @@ class TOF_SIMS :
         """
         """
         #stack label column
-        df = self.df_abundance_per_cluster.stack(level = 'label')
+        df = self.df_intensity_per_cluster.stack(level = 'label')
         df = df.reset_index()
-        df = df.rename(columns={"level_0": "mass" , 0: 'abundance','label' : "cluster"})
+        df = df.rename(columns={"level_0": "mass" , 0: 'intensity','label' : "cluster"})
         df.head()
-        fig = px.bar(df, color="cluster", y="abundance", x="mass", barmode="stack", color_discrete_map=True)
+        fig = px.bar(df, color="cluster", y="intensity", x="mass", barmode="stack", color_discrete_map=True)
         fig.show()
 
 
@@ -1061,11 +1063,11 @@ class TOF_SIMS :
         Not yet working
         """
         #stack label column
-        df = self.df_abundance_per_cluster.stack(level = 'label')
+        df = self.df_intensity_per_cluster.stack(level = 'label')
         df = df.reset_index()
-        df = df.rename(columns={"level_0": "mass" , 0: 'abundance','label' : "cluster"})
+        df = df.rename(columns={"level_0": "mass" , 0: 'intensity','label' : "cluster"})
         df.head()
-        fig = px.scatter(df, x="mass", y="abundance", facet_col="cluster")
+        fig = px.scatter(df, x="mass", y="intensity", facet_col="cluster")
         fig.update_yaxes(nticks=20)
         fig.show()
 
@@ -1078,7 +1080,7 @@ class TOF_SIMS :
         cluster : int, default=0
             cluster to analyse
         """
-        single_cluster_composition(self.df_abundance_per_cluster , n_mass , cluster )
+        single_cluster_composition(self.df_intensity_per_cluster , n_mass , cluster )
 
 
 
