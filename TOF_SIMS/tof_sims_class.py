@@ -253,7 +253,7 @@ class TOF_SIMS :
             plt.imshow(three_D_array[section,:,:],cmap=cmap)
 
         plot_mode = {"x":x,"y":y,"z":z} #store the functions defined above in a dictionnary
-        plot_mode[mode](section)  #run the corresponding functionwith section as parameter
+        plot_mode[mode](section)  #run the corresponding function with section as parameter
         plt.colorbar()
         plt.show()
 
@@ -649,27 +649,51 @@ class TOF_SIMS :
 
 
     @lru_cache(maxsize = cache_size)
-    def sum_intensity(self,a,b):
+    def sum_intensity(self,a,b, position , thickness, mode ):
         """
         used by plot_intensity
         """
-        return np.sum(self._peak_data,axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
+        def x(min,max):
+            #return np.sum(self._peak_data[ : , position - thickness : position + thickness , : ] , axis = (TOF_SIMS.dim[ a ] , TOF_SIMS.dim[ b ]))
+            print(min,max)
+            return np.sum(self._peak_data[ : , min : max , : , : ] , axis = (TOF_SIMS.dim[ a ] , TOF_SIMS.dim[ b ]))
+
+        def y(min,max):
+
+            return np.sum(self._peak_data[:,:, min : max , : ] , axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
+        def z(min,max):
+            return np.sum(self._peak_data[min : max , : , : , : ] , axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
+
+        min = position - thickness
+        max = position + thickness
+        sum_mode = {"x":x,"y":y,"z":z} #store the functions defined above in a dictionnary
+        return sum_mode[mode](min,max)  #run the corresponding function
+        #return np.sum(self._peak_data , axis = (TOF_SIMS.dim[a],TOF_SIMS.dim[b]))
 
 
-    def plot_intensity(self, projection_axis = "z",mass = [1]):
+    def plot_intensity(self, projection_axis = "z",mass = [1], position = None, thickness = None):
         """
         Plots the sum of intensity per frame given an axis (x,y or z)
         axis : str
           x,y or z
         mass : list of ints
           masses to plot
+        position : int,default=None
+            position of line along which to sum data
+        thickness : int,default=None
+            thickness of above line
         """
+
+        if position is None:
+            position = self._peak_data.shape[TOF_SIMS.dim[projection_axis]]//2 #set the cursor at the middle of the image
+            thickness = position
 
         mass = set(mass) #remove any duplicates in mass
 
-        dims = "xyz".replace(projection_axis,"") #remve the axis to parse as we'll sum over the other two
-        sum = self.sum_intensity(dims[0],dims[1])
-
+        dims = "xyz".replace(projection_axis,"") #remove the axis to parse as we'll sum over the other two
+        #sum intensities over other axes
+        sum = self.sum_intensity(dims[0],dims[1], position , thickness , projection_axis)
+        
         # Data for plotting
         x = np.arange(0.0, sum.shape[0], 1) #can be changed later to take into account real thickness/dimension
 

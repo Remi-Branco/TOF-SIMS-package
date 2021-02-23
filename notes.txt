@@ -13,8 +13,6 @@ Since you already are inside TOF-SIMS package folder simply type
 - in developer mode:
   python setup.py bdist_wheel
 
--or alternatively to push to PyPI (don't do it):
-  python setup.py bdist_wheel
 
 5-install TOF-SIMS package on your machine (to make it available to Jupyter notebook)
   pip install TOF-SIMS
